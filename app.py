@@ -506,7 +506,7 @@ def analytics():
     day_row = db.session.query(
         Expense.date, 
         func.sum(Expense.amount)
-    ).group_by(Expense.date).order_by(Expense.date).all()
+    ).filter(Expense.user_id == session['id']).group_by(Expense.date).order_by(Expense.date).all()
 
     # converting dates to strings for chart.js
     dates = [d.strftime("%Y-%m-%d") for d, _ in day_row]
