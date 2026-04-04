@@ -26,7 +26,6 @@
                 <img src="https://www.svgrepo.com/show/475656/google-color.svg" class="w-4 h-4">
                 Continue with Google
             </a>
-
         </div>
 
         <div class="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
@@ -56,8 +55,27 @@
 
                 <div>
                     <label class="block text-xs font-medium text-neutral-600 mb-1">Password</label>
-                    <input type="password" name="password" placeholder="••••••••" required
+                    <input type="password" name="password" id="password" placeholder="••••••••" required
                            class="w-full rounded-xl bg-neutral-50 border border-neutral-200 px-3 py-2 text-black outline-none focus:border-black transition-all">
+
+                    <!-- Password requirements checklist -->
+                    <ul id="pwd-requirements" class="mt-2 space-y-1 hidden">
+                        <li id="req-length"  class="flex items-center gap-2 text-xs text-neutral-400">
+                            <span class="icon">✗</span> At least 8 characters
+                        </li>
+                        <li id="req-upper"   class="flex items-center gap-2 text-xs text-neutral-400">
+                            <span class="icon">✗</span> At least one uppercase letter
+                        </li>
+                        <li id="req-lower"   class="flex items-center gap-2 text-xs text-neutral-400">
+                            <span class="icon">✗</span> At least one lowercase letter
+                        </li>
+                        <li id="req-digit"   class="flex items-center gap-2 text-xs text-neutral-400">
+                            <span class="icon">✗</span> At least one number
+                        </li>
+                        <li id="req-special" class="flex items-center gap-2 text-xs text-neutral-400">
+                            <span class="icon">✗</span> At least one special character
+                        </li>
+                    </ul>
                 </div>
                 
                 <button type="submit" 
@@ -72,5 +90,34 @@
             </div>
         </div>
     </div>
+
+    <script>
+        const passwordInput = document.getElementById('password');
+        const requirementsList = document.getElementById('pwd-requirements');
+
+        const requirements = [
+            { id: 'req-length',  test: p => p.length >= 8 },
+            { id: 'req-upper',   test: p => /[A-Z]/.test(p) },
+            { id: 'req-lower',   test: p => /[a-z]/.test(p) },
+            { id: 'req-digit',   test: p => /[0-9]/.test(p) },
+            { id: 'req-special', test: p => /[!@#$%^&*()_+\-=\[\]{}|;:,.<>?]/.test(p) },
+        ];
+
+        passwordInput.addEventListener('focus', () => {
+            requirementsList.classList.remove('hidden');
+        });
+
+        passwordInput.addEventListener('input', () => {
+            const val = passwordInput.value;
+            requirements.forEach(({ id, test }) => {
+                const li   = document.getElementById(id);
+                const icon = li.querySelector('.icon');
+                const met  = test(val);
+                icon.textContent = met ? '✓' : '✗';
+                li.classList.toggle('text-green-500', met);
+                li.classList.toggle('text-neutral-400', !met);
+            });
+        });
+    </script>
 </body>
 </html>

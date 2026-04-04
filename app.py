@@ -268,7 +268,7 @@ def upload_pic():
             return redirect(url_for('profile'))
         encoded = base64.b64encode(data).decode('utf-8')
         mime = file.content_type
-        user = User.query.get(User, session['id'])
+        user = User.query.get(session['id'])
         user.profile_pic = f"data:{mime};base64,{encoded}"
         db.session.commit()
         flash('Profile picture updated!', 'success')
@@ -288,7 +288,7 @@ def change_email():
     if exists and exists.id != session['id']:
         flash('That email is already in use.', 'error')
         return redirect(url_for('profile'))
-    user = User.query.get(User, session['id'])
+    user = User.query.get(session['id'])
     user.email = new_email
     db.session.commit()
     flash('Email updated!', 'success')
@@ -302,7 +302,7 @@ def change_password():
         return redirect(url_for('login'))
     current = request.form.get('current_password', '')
     new_pw  = request.form.get('new_password', '')
-    user = User.query.get(User, session['id'])
+    user = User.query.get(session['id'])
     if not check_password_hash(user.password, current):
         flash('Current password is incorrect.', 'error')
         return redirect(url_for('profile'))
@@ -325,7 +325,7 @@ def set_password():
     if error:
         flash(error, 'error')
         return redirect(url_for('profile'))
-    user = User.query.get(User, session['id'])
+    user = User.query.get(session['id'])
     user.password = generate_password_hash(new_pw)
     db.session.commit()
     flash('Password set! You can now log in with your username too.', 'success')
@@ -336,7 +336,7 @@ def set_password():
 def delete_account():
     if 'loggedin' not in session:
         return redirect(url_for('login'))
-    user = User.query.get(User, session['id'])
+    user = User.query.get(session['id'])
     Expense.query.filter_by(user_id=session['id']).delete()
     db.session.delete(user)
     db.session.commit()
@@ -420,7 +420,7 @@ def index():
   cat_labels = [c for c, _ in cat_row]
   cat_amounts = [round(float(s or 0), 3) for _, s in cat_row]
 
-  user = User.query.get(User, session['id'])
+  user = User.query.get(session['id'])
 
   return render_template(
     
@@ -517,7 +517,7 @@ def analytics():
     if 'loggedin' not in session:
         return redirect(url_for('login'))
     
-    user = User.query.get(User, session['id'])
+    user = User.query.get(session['id'])
 
     return render_template(
         "analytics.html",
