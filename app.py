@@ -11,7 +11,7 @@ from authlib.integrations.flask_client import OAuth
 from werkzeug.security import generate_password_hash, check_password_hash
 from itsdangerous import URLSafeTimedSerializer
 import os
-
+import base64 
 
 app = Flask(__name__)
 
@@ -68,11 +68,21 @@ class User(db.Model):
     password  = db.Column(db.String(100), nullable=True)
     email = db.Column(db.String(120), unique=True, nullable=True)
     google_id = db.Column(db.String(128), unique=True, nullable=True)
+    profile_pic = db.Column(db.Text, nullable=True) 
 #---------------------------------------
 
 # This will create a database
 with app.app_context(): 
   db.create_all()
+
+  try:
+     with db.engine.connect() as conn:
+      conn.execute(db.text(
+         'ALTER TABLE "user" ADD COLUMN IF NOT EXISTS profile_pic TEXT'
+         )) 
+      conn.commit()
+  except Exception:
+     pass        
 
 CATEGORIES = ['Food', 'Transport', 'Rent', 'Utilitiies', 'Health']
 
@@ -92,7 +102,7 @@ def login():
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
-        user = User.query.filter_by(username=username, password=password).first()
+        user = User.query.filter_by(username=username).first()
         if user:
             session['loggedin'] = True
             session['id'] = user.id
@@ -107,17 +117,41 @@ def register():
     if request.method == 'POST':
         username = request.form['username']
         password = request.form['password']
-        # Check if account exists
+
+        # Validate first
+        error = validate_password(password)
+        if error:
+            flash(error, 'error')
+            return render_template('register.html')
+
+        # Then check if user exists
         exists = User.query.filter_by(username=username).first()
         if exists:
             flash('Account already exists!', 'error')
         else:
-            new_user = User(username=username, password=password)
+            hashed_password = generate_password_hash(password)
+            new_user = User(username=username, password=hashed_password)
             db.session.add(new_user)
             db.session.commit()
             flash('You have successfully registered!', 'success')
             return redirect(url_for('login'))
+
     return render_template('register.html')
+
+def validate_password(password):
+    if len(password) < 8:
+        return 'Password must be at least 8 characters.'
+    if not any(c.isupper() for c in password):
+        return 'Password must contain at least one uppercase letter.'
+    if not any(c.islower() for c in password):
+        return 'Password must contain at least one lowercase letter.'
+    if not any(c.isdigit() for c in password):
+        return 'Password must contain at least one number.'
+    if not any(c in '!@#$%^&*()_+-=[]{}|;:,.<>?' for c in password):
+        return 'Password must contain at least one special character.'
+    return None  
+
+
 
 @app.route('/logout')
 def logout():
@@ -205,9 +239,108 @@ def reset_password(token):
     return render_template('reset_password.html', token=token)
 
 
+#-------------------------Profile-----------------------------------
+
+# Profile page
+@app.route('/profile')
+def profile():
+    if 'loggedin' not in session:
+        return redirect(url_for('login'))
+    user = User.query.get_or_404(session['id'])
+    is_google_user = user.google_id is not None and user.password is None
+    return render_template('profile.html', user=user, is_google_user=is_google_user)
 
 
-#--------------------------------------------------------------------
+# Upload profile picture
+@app.route('/profile/upload-pic', methods=['POST'])
+def upload_pic():
+    if 'loggedin' not in session:
+        return redirect(url_for('login'))
+    file = request.files.get('profile_pic')
+    if file and file.filename:
+        data = file.read()
+        if len(data) > 2 * 1024 * 1024:  # 2MB limit
+            flash('Image must be under 2MB.', 'error')
+            return redirect(url_for('profile'))
+        encoded = base64.b64encode(data).decode('utf-8')
+        mime = file.content_type
+        user = User.query.get(session['id'])
+        user.profile_pic = f"data:{mime};base64,{encoded}"
+        db.session.commit()
+        flash('Profile picture updated!', 'success')
+    return redirect(url_for('profile'))
+
+
+# Change email
+@app.route('/profile/change-email', methods=['POST'])
+def change_email():
+    if 'loggedin' not in session:
+        return redirect(url_for('login'))
+    new_email = request.form.get('email', '').strip()
+    if not new_email:
+        flash('Email cannot be empty.', 'error')
+        return redirect(url_for('profile'))
+    exists = User.query.filter_by(email=new_email).first()
+    if exists and exists.id != session['id']:
+        flash('That email is already in use.', 'error')
+        return redirect(url_for('profile'))
+    user = User.query.get(session['id'])
+    user.email = new_email
+    db.session.commit()
+    flash('Email updated!', 'success')
+    return redirect(url_for('profile'))
+
+
+# Change password
+@app.route('/profile/change-password', methods=['POST'])
+def change_password():
+    if 'loggedin' not in session:
+        return redirect(url_for('login'))
+    current = request.form.get('current_password', '')
+    new_pw  = request.form.get('new_password', '')
+    user = User.query.get(session['id'])
+    if not check_password_hash(user.password, current):
+        flash('Current password is incorrect.', 'error')
+        return redirect(url_for('profile'))
+    error = validate_password(new_pw)
+    if error:
+        flash(error, 'error')
+        return redirect(url_for('profile'))
+    user.password = generate_password_hash(new_pw)
+    db.session.commit()
+    flash('Password updated!', 'success')
+    return redirect(url_for('profile'))
+
+# Set password
+@app.route('/profile/set-password', methods=['POST'])
+def set_password():
+    if 'loggedin' not in session:
+        return redirect(url_for('login'))
+    new_pw = request.form.get('new_password', '')
+    error = validate_password(new_pw)
+    if error:
+        flash(error, 'error')
+        return redirect(url_for('profile'))
+    user = User.query.get(session['id'])
+    user.password = generate_password_hash(new_pw)
+    db.session.commit()
+    flash('Password set! You can now log in with your username too.', 'success')
+    return redirect(url_for('profile'))
+
+# Delete account
+@app.route('/profile/delete-account', methods=['POST'])
+def delete_account():
+    if 'loggedin' not in session:
+        return redirect(url_for('login'))
+    user = User.query.get(session['id'])
+    Expense.query.filter_by(user_id=session['id']).delete()
+    db.session.delete(user)
+    db.session.commit()
+    session.clear()
+    flash('Your account has been deleted.', 'success')
+    return redirect(url_for('login'))
+
+#-----------------------------------------------------------------------
 
 @app.route("/")
 def index():
@@ -283,6 +416,7 @@ def index():
   cat_labels = [c for c, _ in cat_row]
   cat_amounts = [round(float(s or 0), 3) for _, s in cat_row]
 
+  user = User.query.get(session['id'])
 
   return render_template(
     
@@ -301,6 +435,7 @@ def index():
     monthly_avg=monthly_avg,             
     top_category=top_category,         
     top_category_amount=top_category_amount,  
+    current_user_pic = user.profile_pic
 
     )
 #----------------------------------Adding Category-----------------------------------------
@@ -375,12 +510,16 @@ def analytics():
     dates = [d.strftime("%Y-%m-%d") for d, _ in day_row]
     daily_totals = [round(float(s or 0), 2) for _, s in day_row]
 
+    user = User.query.get(session['id'])
+
+
     return render_template(
         "analytics.html",
         categories=cat_labels,         # Labels for the bar chart
         category_totals=cat_amounts,   # Data for the bar chart
         dates=dates,                   # Labels for the line chart
-        daily_totals=daily_totals      # Data for the line chart
+        daily_totals=daily_totals,      # Data for the line chart
+        current_user_pic = user.profile_pic
     )
 
 if __name__ == "__main__":

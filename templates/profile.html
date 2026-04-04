@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en" class="h-full bg-[#f7f7f5]">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Profile · PocketPal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="min-h-full text-[#37352f]">
+
+    <!-- Navbar -->
+    <nav class="bg-white border-b border-neutral-200 px-6 py-3 flex items-center justify-between">
+        <div class="flex items-center gap-6">
+            <span class="font-bold text-lg">PocketPal</span>
+            <a href="{{ url_for('index') }}"
+                class="text-sm text-neutral-500 hover:text-black transition-colors">Dashboard</a>
+            <a href="{{ url_for('analytics') }}"
+                class="text-sm text-neutral-500 hover:text-black transition-colors">Analytics</a>
+        </div>
+        <div class="flex items-center gap-3">
+            <span class="text-sm text-neutral-500">Hi, {{ user.username }}</span>
+            <a href="{{ url_for('logout') }}"
+                class="text-sm border border-neutral-200 rounded-lg px-3 py-1 hover:bg-neutral-50 transition-colors">Logout</a>
+        </div>
+    </nav>
+
+    <div class="max-w-2xl mx-auto px-4 py-10 space-y-6">
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+        {% for category, message in messages %}
+        <div
+            class="text-xs p-3 rounded-xl border {% if category == 'error' %}bg-red-50 text-red-600 border-red-100{% else %}bg-green-50 text-green-600 border-green-100{% endif %}">
+            {{ message }}
+        </div>
+        {% endfor %}
+        {% endif %}
+        {% endwith %}
+
+        <!-- Profile Picture -->
+        <div class="bg-white rounded-2xl border border-neutral-200 p-6 shadow-sm">
+            <h2 class="text-sm font-semibold text-neutral-500 uppercase tracking-wide mb-4">Profile Picture</h2>
+            <div class="flex items-center gap-6">
+                <!-- Avatar -->
+                <div
+                    class="w-20 h-20 rounded-full overflow-hidden bg-black flex items-center justify-center flex-shrink-0">
+                    {% if user.profile_pic %}
+                    <img src="{{ user.profile_pic }}" alt="Profile" class="w-full h-full object-cover">
+                    {% else %}
+                    <span class="text-white text-2xl font-bold">{{ user.username[0].upper() }}</span>
+                    {% endif %}
+                </div>
+                <!-- Upload form -->
+                <form action="{{ url_for('upload_pic') }}" method="post" enctype="multipart/form-data"
+                    class="flex flex-col gap-2">
+                    <label class="text-xs text-neutral-500 mb-1">Upload a new photo (max 2MB)</label>
+                    <div class="flex items-center gap-2">
+                        <input type="file" name="profile_pic" accept="image/*" required
+                            class="text-xs text-neutral-600 file:mr-2 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:bg-neutral-100 file:text-neutral-700 hover:file:bg-neutral-200">
+                        <button type="submit"
+                            class="rounded-lg bg-black text-white text-xs px-4 py-2 hover:bg-neutral-800 transition-colors">
+                            Upload
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Change Email  -->
+        {% if not is_google_user %}
+        <div class="bg-white rounded-2xl border border-neutral-200 p-6 shadow-sm">
+            <h2 class="text-sm font-semibold text-neutral-500 uppercase tracking-wide mb-4">Change Password</h2>
+            <form action="{{ url_for('change_password') }}" method="post" class="space-y-3">
+                <div>
+                    <label class="block text-xs font-medium text-neutral-600 mb-1">Current password</label>
+                    <input type="password" name="current_password" placeholder="••••••••" required
+                        class="w-full rounded-xl bg-neutral-50 border border-neutral-200 px-3 py-2 text-sm outline-none focus:border-black transition-all">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-neutral-600 mb-1">New password</label>
+                    <input type="password" name="new_password" id="new_password" placeholder="••••••••" required
+                        class="w-full rounded-xl bg-neutral-50 border border-neutral-200 px-3 py-2 text-sm outline-none focus:border-black transition-all">
+                    <ul id="pwd-requirements" class="mt-2 space-y-1 hidden">
+                        <li id="req-length" class="flex items-center gap-2 text-xs text-neutral-400"><span
+                                class="icon">✗</span> At least 8 characters</li>
+                        <li id="req-upper" class="flex items-center gap-2 text-xs text-neutral-400"><span
+                                class="icon">✗</span> At least one uppercase letter</li>
+                        <li id="req-lower" class="flex items-center gap-2 text-xs text-neutral-400"><span
+                                class="icon">✗</span> At least one lowercase letter</li>
+                        <li id="req-digit" class="flex items-center gap-2 text-xs text-neutral-400"><span
+                                class="icon">✗</span> At least one number</li>
+                        <li id="req-special" class="flex items-center gap-2 text-xs text-neutral-400"><span
+                                class="icon">✗</span> At least one special character</li>
+                    </ul>
+                </div>
+                <button type="submit"
+                    class="rounded-lg bg-black text-white text-xs px-4 py-2 hover:bg-neutral-800 transition-colors">
+                    Update Password
+                </button>
+            </form>
+        </div>
+
+        {% else %}
+        <!-- Set Password -->
+        <div class="bg-white rounded-2xl border border-neutral-200 p-6 shadow-sm">
+            <h2 class="text-sm font-semibold text-neutral-500 uppercase tracking-wide mb-4">Set a Password</h2>
+            <p class="text-xs text-neutral-400 mb-4">You signed in with Google. You can optionally set a password to
+                also log in with your username.</p>
+            <form action="{{ url_for('set_password') }}" method="post" class="space-y-3">
+                <div>
+                    <label class="block text-xs font-medium text-neutral-600 mb-1">New password</label>
+                    <input type="password" name="new_password" id="new_password" placeholder="••••••••" required
+                        class="w-full rounded-xl bg-neutral-50 border border-neutral-200 px-3 py-2 text-sm outline-none focus:border-black transition-all">
+                    <ul id="pwd-requirements" class="mt-2 space-y-1 hidden">
+                        <li id="req-length" class="flex items-center gap-2 text-xs text-neutral-400"><span
+                                class="icon">✗</span> At least 8 characters</li>
+                        <li id="req-upper" class="flex items-center gap-2 text-xs text-neutral-400"><span
+                                class="icon">✗</span> At least one uppercase letter</li>
+                        <li id="req-lower" class="flex items-center gap-2 text-xs text-neutral-400"><span
+                                class="icon">✗</span> At least one lowercase letter</li>
+                        <li id="req-digit" class="flex items-center gap-2 text-xs text-neutral-400"><span
+                                class="icon">✗</span> At least one number</li>
+                        <li id="req-special" class="flex items-center gap-2 text-xs text-neutral-400"><span
+                                class="icon">✗</span> At least one special character</li>
+                    </ul>
+                </div>
+                <button type="submit"
+                    class="rounded-lg bg-black text-white text-xs px-4 py-2 hover:bg-neutral-800 transition-colors">
+                    Set Password
+                </button>
+            </form>
+        </div>
+        {% endif %}
+
+        <!-- Delete Account -->
+        <div class="bg-white rounded-2xl border border-red-100 p-6 shadow-sm">
+            <h2 class="text-sm font-semibold text-red-400 uppercase tracking-wide mb-1">Danger Zone</h2>
+            <p class="text-xs text-neutral-400 mb-4">Deleting your account is permanent and will remove all your
+                expenses.</p>
+            <button onclick="document.getElementById('confirm-delete').classList.remove('hidden')"
+                class="rounded-lg bg-red-500 text-white text-xs px-4 py-2 hover:bg-red-600 transition-colors">
+                Delete Account
+            </button>
+            <!-- Confirmation -->
+            <div id="confirm-delete" class="hidden mt-4 p-4 bg-red-50 rounded-xl border border-red-100">
+                <p class="text-xs text-red-600 mb-3 font-medium">Are you sure? This cannot be undone.</p>
+                <div class="flex gap-2">
+                    <form action="{{ url_for('delete_account') }}" method="post">
+                        <button type="submit"
+                            class="rounded-lg bg-red-500 text-white text-xs px-4 py-2 hover:bg-red-600 transition-colors">
+                            Yes, delete my account
+                        </button>
+                    </form>
+                    <button onclick="document.getElementById('confirm-delete').classList.add('hidden')"
+                        class="rounded-lg border border-neutral-200 text-xs px-4 py-2 hover:bg-neutral-50 transition-colors">
+                        Cancel
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const pwInput = document.getElementById('new_password');
+        if (pwInput) {
+            const list = document.getElementById('pwd-requirements');
+            const reqs = [
+                { id: 'req-length', test: p => p.length >= 8 },
+                { id: 'req-upper', test: p => /[A-Z]/.test(p) },
+                { id: 'req-lower', test: p => /[a-z]/.test(p) },
+                { id: 'req-digit', test: p => /[0-9]/.test(p) },
+                { id: 'req-special', test: p => /[!@#$%^&*()_+\-=\[\]{}|;:,.<>?]/.test(p) },
+            ];
+            pwInput.addEventListener('focus', () => list.classList.remove('hidden'));
+            pwInput.addEventListener('input', () => {
+                reqs.forEach(({ id, test }) => {
+                    const li = document.getElementById(id);
+                    const met = test(pwInput.value);
+                    li.querySelector('.icon').textContent = met ? '✓' : '✗';
+                    li.classList.toggle('text-green-500', met);
+                    li.classList.toggle('text-neutral-400', !met);
+                });
+            });
+        }
+    </script>
+</body>
+
+</html>
