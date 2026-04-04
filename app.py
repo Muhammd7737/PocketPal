@@ -76,15 +76,13 @@ with app.app_context():
     db.create_all()
     try:
         with db.engine.connect() as conn:
-            # Check if column exists first
-            result = conn.execute(db.text("PRAGMA table_info('user')"))
-            columns = [row[1] for row in result]
-            if 'profile_pic' not in columns:
-                conn.execute(db.text('ALTER TABLE "user" ADD COLUMN profile_pic TEXT'))
-                conn.commit()
+            conn.execute(db.text(
+                'ALTER TABLE "user" ADD COLUMN IF NOT EXISTS profile_pic TEXT'
+            ))
+            conn.commit()
     except Exception as e:
         print(f"Migration error: {e}")
-        pass      
+        pass     
 
 CATEGORIES = ['Food', 'Transport', 'Rent', 'Utilitiies', 'Health']
 
