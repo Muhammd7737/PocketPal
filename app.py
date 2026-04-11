@@ -497,7 +497,8 @@ def analytics():
     cat_row = db.session.query(
         Expense.category, 
         func.sum(Expense.amount)
-    ).group_by(Expense.category).all()
+    ).filter(Expense.user_id == session['id']).group_by(Expense.category).all()
+    
     
     cat_labels = [c for c, _ in cat_row]
     cat_amounts = [round(float(s or 0), 2) for _, s in cat_row]
@@ -506,14 +507,11 @@ def analytics():
     day_row = db.session.query(
         Expense.date, 
         func.sum(Expense.amount)
-    ).group_by(Expense.date).order_by(Expense.date).all()
+    ).filter(Expense.user_id == session['id']).group_by(Expense.date).order_by(Expense.date).all()
 
     # converting dates to strings for chart.js
     dates = [d.strftime("%Y-%m-%d") for d, _ in day_row]
     daily_totals = [round(float(s or 0), 2) for _, s in day_row]
-
-    if 'loggedin' not in session:
-        return redirect(url_for('login'))
     
     user = User.query.get(session['id'])
 
