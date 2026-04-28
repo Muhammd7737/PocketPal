@@ -43,7 +43,6 @@
         <div class="bg-white rounded-2xl border border-neutral-200 p-6 shadow-sm">
             <h2 class="text-sm font-semibold text-neutral-500 uppercase tracking-wide mb-4">Profile Picture</h2>
             <div class="flex items-center gap-6">
-                <!-- Avatar -->
                 <div
                     class="w-20 h-20 rounded-full overflow-hidden bg-black flex items-center justify-center flex-shrink-0">
                     {% if user.profile_pic %}
@@ -52,7 +51,6 @@
                     <span class="text-white text-2xl font-bold">{{ user.username[0].upper() }}</span>
                     {% endif %}
                 </div>
-                <!-- Upload form -->
                 <form action="{{ url_for('upload_pic') }}" method="post" enctype="multipart/form-data"
                     class="flex flex-col gap-2">
                     <label class="text-xs text-neutral-500 mb-1">Upload a new photo (max 2MB)</label>
@@ -68,7 +66,44 @@
             </div>
         </div>
 
-        <!-- Change Email  -->
+        <!-- Custom Categories -->
+        <div class="bg-white rounded-2xl border border-neutral-200 p-6 shadow-sm">
+            <h2 class="text-sm font-semibold text-neutral-500 uppercase tracking-wide mb-1">Custom Categories</h2>
+            <p class="text-xs text-neutral-400 mb-4">Add your own categories. These will appear alongside the defaults in your expense forms.</p>
+
+            <!-- Add new category -->
+            <form action="{{ url_for('add_category') }}" method="post" class="flex gap-2 mb-4">
+                <input type="text" name="category_name" placeholder="e.g. Pets, Subscriptions..."
+                    class="flex-1 rounded-xl bg-neutral-50 border border-neutral-200 px-3 py-2 text-sm outline-none focus:border-black transition-all"
+                    maxlength="50" required />
+                <button type="submit"
+                    class="rounded-lg bg-black text-white text-xs px-4 py-2 hover:bg-neutral-800 transition-colors whitespace-nowrap">
+                    Add
+                </button>
+            </form>
+
+            <!-- Existing custom categories -->
+            {% if custom_cats %}
+            <ul class="space-y-2">
+                {% for cat in custom_cats %}
+                <li class="flex items-center justify-between bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-2">
+                    <span class="text-sm font-medium">{{ cat.name }}</span>
+                    <form action="{{ url_for('delete_category', cat_id=cat.id) }}" method="post"
+                        onsubmit="return confirm('Remove category \'{{ cat.name }}\'?')">
+                        <button type="submit"
+                            class="text-xs text-neutral-400 hover:text-red-500 border border-neutral-200 hover:border-red-200 px-2 py-1 rounded-lg transition-colors">
+                            Remove
+                        </button>
+                    </form>
+                </li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p class="text-xs text-neutral-400 italic">No custom categories yet.</p>
+            {% endif %}
+        </div>
+
+        <!-- Change Password / Set Password -->
         {% if not is_google_user %}
         <div class="bg-white rounded-2xl border border-neutral-200 p-6 shadow-sm">
             <h2 class="text-sm font-semibold text-neutral-500 uppercase tracking-wide mb-4">Change Password</h2>
@@ -83,16 +118,11 @@
                     <input type="password" name="new_password" id="new_password" placeholder="••••••••" required
                         class="w-full rounded-xl bg-neutral-50 border border-neutral-200 px-3 py-2 text-sm outline-none focus:border-black transition-all">
                     <ul id="pwd-requirements" class="mt-2 space-y-1 hidden">
-                        <li id="req-length" class="flex items-center gap-2 text-xs text-neutral-400"><span
-                                class="icon">✗</span> At least 8 characters</li>
-                        <li id="req-upper" class="flex items-center gap-2 text-xs text-neutral-400"><span
-                                class="icon">✗</span> At least one uppercase letter</li>
-                        <li id="req-lower" class="flex items-center gap-2 text-xs text-neutral-400"><span
-                                class="icon">✗</span> At least one lowercase letter</li>
-                        <li id="req-digit" class="flex items-center gap-2 text-xs text-neutral-400"><span
-                                class="icon">✗</span> At least one number</li>
-                        <li id="req-special" class="flex items-center gap-2 text-xs text-neutral-400"><span
-                                class="icon">✗</span> At least one special character</li>
+                        <li id="req-length" class="flex items-center gap-2 text-xs text-neutral-400"><span class="icon">✗</span> At least 8 characters</li>
+                        <li id="req-upper" class="flex items-center gap-2 text-xs text-neutral-400"><span class="icon">✗</span> At least one uppercase letter</li>
+                        <li id="req-lower" class="flex items-center gap-2 text-xs text-neutral-400"><span class="icon">✗</span> At least one lowercase letter</li>
+                        <li id="req-digit" class="flex items-center gap-2 text-xs text-neutral-400"><span class="icon">✗</span> At least one number</li>
+                        <li id="req-special" class="flex items-center gap-2 text-xs text-neutral-400"><span class="icon">✗</span> At least one special character</li>
                     </ul>
                 </div>
                 <button type="submit"
@@ -103,27 +133,21 @@
         </div>
 
         {% else %}
-        <!-- Set Password -->
         <div class="bg-white rounded-2xl border border-neutral-200 p-6 shadow-sm">
             <h2 class="text-sm font-semibold text-neutral-500 uppercase tracking-wide mb-4">Set a Password</h2>
-            <p class="text-xs text-neutral-400 mb-4">You signed in with Google. You can optionally set a password to
-                also log in with your username.</p>
+            <p class="text-xs text-neutral-400 mb-4">You signed in with Google. You can optionally set a password to also log in with your username.</p>
             <form action="{{ url_for('set_password') }}" method="post" class="space-y-3">
                 <div>
                     <label class="block text-xs font-medium text-neutral-600 mb-1">New password</label>
                     <input type="password" name="new_password" id="new_password" placeholder="••••••••" required
                         class="w-full rounded-xl bg-neutral-50 border border-neutral-200 px-3 py-2 text-sm outline-none focus:border-black transition-all">
                     <ul id="pwd-requirements" class="mt-2 space-y-1 hidden">
-                        <li id="req-length" class="flex items-center gap-2 text-xs text-neutral-400"><span
-                                class="icon">✗</span> At least 8 characters</li>
-                        <li id="req-upper" class="flex items-center gap-2 text-xs text-neutral-400"><span
-                                class="icon">✗</span> At least one uppercase letter</li>
-                        <li id="req-lower" class="flex items-center gap-2 text-xs text-neutral-400"><span
-                                class="icon">✗</span> At least one lowercase letter</li>
-                        <li id="req-digit" class="flex items-center gap-2 text-xs text-neutral-400"><span
-                                class="icon">✗</span> At least one number</li>
-                        <li id="req-special" class="flex items-center gap-2 text-xs text-neutral-400"><span
-                                class="icon">✗</span> At least one special character</li>
+                        <li id="req-length" class="flex items-center gap-2 text-xs text-neutral-400"><span class="icon">✗</span> At least 8 characters</li>
+                        <li id="req-upper" class="flex items-center gap-2 text-xs text-neutral-400"><span class="icon">✗</span> At least one uppercase letter</li>
+                        <li id="req-lower" class="flex items-center gap-2 text-xs text-neutral-400"><span class="icon">✗</span> At least one lowercase letter</li>
+                        <li id="req-lower" class="flex items-center gap-2 text-xs text-neutral-400"><span class="icon">✗</span> At least one lowercase letter</li>
+                        <li id="req-digit" class="flex items-center gap-2 text-xs text-neutral-400"><span class="icon">✗</span> At least one number</li>
+                        <li id="req-special" class="flex items-center gap-2 text-xs text-neutral-400"><span class="icon">✗</span> At least one special character</li>
                     </ul>
                 </div>
                 <button type="submit"
@@ -137,13 +161,11 @@
         <!-- Delete Account -->
         <div class="bg-white rounded-2xl border border-red-100 p-6 shadow-sm">
             <h2 class="text-sm font-semibold text-red-400 uppercase tracking-wide mb-1">Danger Zone</h2>
-            <p class="text-xs text-neutral-400 mb-4">Deleting your account is permanent and will remove all your
-                expenses.</p>
+            <p class="text-xs text-neutral-400 mb-4">Deleting your account is permanent and will remove all your expenses and custom categories.</p>
             <button onclick="document.getElementById('confirm-delete').classList.remove('hidden')"
                 class="rounded-lg bg-red-500 text-white text-xs px-4 py-2 hover:bg-red-600 transition-colors">
                 Delete Account
             </button>
-            <!-- Confirmation -->
             <div id="confirm-delete" class="hidden mt-4 p-4 bg-red-50 rounded-xl border border-red-100">
                 <p class="text-xs text-red-600 mb-3 font-medium">Are you sure? This cannot be undone.</p>
                 <div class="flex gap-2">

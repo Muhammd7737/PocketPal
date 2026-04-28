@@ -70,6 +70,11 @@ class User(db.Model):
     google_id = db.Column(db.String(128), unique=True, nullable=True)
     profile_pic = db.Column(db.Text, nullable=True) 
 #---------------------------------------
+class CustomCategory(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+    name = db.Column(db.String(50), nullable=False)
+ 
 
 # This will create a database
 with app.app_context(): 
@@ -84,7 +89,28 @@ with app.app_context():
         print(f"Migration error: {e}")
         pass     
 
-CATEGORIES = ['Food', 'Transport', 'Rent', 'Utilitiies', 'Health']
+DEFAULT_CATEGORIES = [
+    'Food & Dining',
+    'Groceries',
+    'Transport',
+    'Rent',
+    'Utilities',
+    'Health & Medical',
+    'Entertainment',
+    'Shopping',
+    'Personal Care',
+    'Insurance',
+    'Education',
+    'Travel',
+    'Savings & Investments',
+    'Miscellaneous',
+]
+ 
+def get_user_categories(user_id):
+    """Return default categories plus any custom ones added by the user."""
+    custom = CustomCategory.query.filter_by(user_id=user_id).order_by(CustomCategory.name).all()
+    custom_names = [c.name for c in custom]
+    return DEFAULT_CATEGORIES + custom_names
 
 #---------------------------------------------------------------------------------
 def prase_date_or_none(s:str):
@@ -336,11 +362,54 @@ def delete_account():
         return redirect(url_for('login'))
     user = User.query.get(session['id'])
     Expense.query.filter_by(user_id=session['id']).delete()
+    CustomCategory.query.filter_by(user_id=session['id']).delete()
     db.session.delete(user)
     db.session.commit()
     session.clear()
     flash('Your account has been deleted.', 'success')
     return redirect(url_for('login'))
+
+
+#---------------------Custom Category---------------------------
+ 
+@app.route('/categories/add', methods=['POST'])
+def add_category():
+    if 'loggedin' not in session:
+        return redirect(url_for('login'))
+    name = (request.form.get('category_name') or '').strip().title()
+    if not name:
+        flash('Category name cannot be empty.', 'error')
+        return redirect(url_for('profile'))
+    if name in DEFAULT_CATEGORIES:
+        flash('That category already exists in the default list.', 'error')
+        return redirect(url_for('profile'))
+    exists = CustomCategory.query.filter_by(user_id=session['id'], name=name).first()
+    if exists:
+        flash('You already have that custom category.', 'error')
+        return redirect(url_for('profile'))
+    if len(name) > 50:
+        flash('Category name must be 50 characters or fewer.', 'error')
+        return redirect(url_for('profile'))
+    new_cat = CustomCategory(user_id=session['id'], name=name)
+    db.session.add(new_cat)
+    db.session.commit()
+    flash(f'Category "{name}" added!', 'success')
+    return redirect(url_for('profile'))
+ 
+ 
+@app.route('/categories/delete/<int:cat_id>', methods=['POST'])
+def delete_category(cat_id):
+    if 'loggedin' not in session:
+        return redirect(url_for('login'))
+    cat = CustomCategory.query.get_or_404(cat_id)
+    if cat.user_id != session['id']:
+        flash('Not authorised.', 'error')
+        return redirect(url_for('profile'))
+    db.session.delete(cat)
+    db.session.commit()
+    flash(f'Category "{cat.name}" removed.', 'success')
+    return redirect(url_for('profile'))
+
 
 #-----------------------------------------------------------------------
 
@@ -350,6 +419,7 @@ def index():
   if 'loggedin' not in session:
     return redirect(url_for('login'))
   
+  categories = get_user_categories(session['id'])
 
   # all expenses for the user 
   all_expenses = Expense.query.filter_by(user_id=session['id']).all()
@@ -424,7 +494,7 @@ def index():
     
     "index.html", 
   
-    categories=CATEGORIES,
+    categories=categories,
     today=date.today().isoformat(),
     expenses=expenses,
     total=total,
@@ -444,84 +514,97 @@ def index():
 
 @app.route("/add", methods=['POST'])
 def add():
-
+  if 'loggedin' not in session:
+    return redirect(url_for('login'))
+ 
   description = (request.form.get("description") or "").strip()
   amount_str = (request.form.get("amount") or "").strip()
-  category = (request.form.get("category") or "").strip()
   date_str = (request.form.get("date") or "").strip()
-
+ 
+  # Handle custom category
+  category = (request.form.get("category") or "").strip()
+  custom_category = (request.form.get("custom_category") or "").strip().title()
+  if category == "__custom__":
+    if not custom_category:
+      flash("Please enter a custom category name.", "error")
+      return redirect(url_for("index"))
+    if len(custom_category) > 50:
+      flash("Category name must be 50 characters or fewer.", "error")
+      return redirect(url_for("index"))
+    # Save it so it appears next time
+    all_cats = get_user_categories(session['id'])
+    if custom_category not in all_cats:
+      new_cat = CustomCategory(user_id=session['id'], name=custom_category)
+      db.session.add(new_cat)
+      db.session.commit()
+    category = custom_category
+ 
   if not description or not amount_str or not category:
     flash("Please fill description, amount, and category", "error")
     return redirect(url_for("index"))
-
+ 
   try:
     amount = float(amount_str)
     if amount <= 0:
       raise ValueError
-    
   except ValueError:
-    flash ("Amount must be positibe number", "error")
+    flash("Amount must be a positive number", "error")
     return redirect(url_for("index"))
-    
-
+ 
   try:
     d = datetime.strptime(date_str, "%Y-%m-%d").date() if date_str else date.today()
-
   except ValueError:
     d = date.today()
-
-
+ 
   e = Expense(description=description, amount=amount, category=category, date=d,
               user_id=session['id'])
   db.session.add(e)
   db.session.commit()
-
+ 
   flash("Expense added", "success")
   return redirect(url_for("index"))
-
-#------------------------------Delete Category------------------------------
-
+ 
+#------------------------------Delete Expense------------------------------
+ 
 @app.route('/delete/<int:expense_id>', methods=['POST'])
 def delete(expense_id):
   e = Expense.query.get_or_404(expense_id)
-
   db.session.delete(e)
   db.session.commit()
   flash("Expense deleted", "success")
   return redirect(url_for("index"))
-
-#-----------------------------Charts----------------------------------------
+ 
+#-----------------------------Analytics----------------------------------------
 @app.route("/analytics")
 def analytics():
-    # totals by category for the Bar Chart
+    if 'loggedin' not in session:
+        return redirect(url_for('login'))
+ 
     cat_row = db.session.query(
         Expense.category, 
         func.sum(Expense.amount)
     ).filter(Expense.user_id == session['id']).group_by(Expense.category).all()
     
-    
     cat_labels = [c for c, _ in cat_row]
     cat_amounts = [round(float(s or 0), 2) for _, s in cat_row]
-
-    # totals by date for the Line Chart
+ 
     day_row = db.session.query(
         Expense.date, 
         func.sum(Expense.amount)
     ).filter(Expense.user_id == session['id']).group_by(Expense.date).order_by(Expense.date).all()
-
-    # converting dates to strings for chart.js
+ 
     dates = [d.strftime("%Y-%m-%d") for d, _ in day_row]
     daily_totals = [round(float(s or 0), 2) for _, s in day_row]
-    
+ 
     user = User.query.get(session['id'])
-
+ 
     return render_template(
         "analytics.html",
-        categories=cat_labels,         # Labels for the bar chart
-        category_totals=cat_amounts,   # Data for the bar chart
-        dates=dates,                   # Labels for the line chart
-        daily_totals=daily_totals,      # Data for the line chart
-        current_user_pic = user.profile_pic
+        categories=cat_labels,
+        category_totals=cat_amounts,
+        dates=dates,
+        daily_totals=daily_totals,
+        current_user_pic=user.profile_pic
     )
 
 if __name__ == "__main__":
