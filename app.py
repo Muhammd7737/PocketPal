@@ -460,6 +460,13 @@ def add_recurring():
     )
     db.session.add(bill)
     db.session.commit()
+
+    try: # process any overdue bills immediately after adding a new one
+       db.session.execute(db.text("SELECT process_recurring_bills()"))
+       db.session.commit()
+    except Exception as e:
+       print(f"Error processing recurring bills: {e}")
+
     flash(f'Recurring bill "{name}" added!', 'success')
     return redirect(url_for('index'))
 
@@ -483,6 +490,12 @@ def index():
 
   if 'loggedin' not in session:
     return redirect(url_for('login'))
+  
+  try:
+    db.session.execute(db.text("SELECT process_recurring_bills()"))
+    db.session.commit()
+  except Exception as e:
+    print(f"Error processing recurring bills: {e}")
   
   categories = get_user_categories(session['id'])
 
