@@ -75,6 +75,16 @@ class CustomCategory(db.Model):
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     name = db.Column(db.String(50), nullable=False)
  
+#--------------Recurring Bill------------
+class RecurringBill(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(120), nullable=False)
+    amount = db.Column(db.Float, nullable=False)
+    category = db.Column(db.String(50), nullable=False)
+    frequency = db.Column(db.String(20), nullable=False)  # weekly, monthly, yearly
+    next_due_date = db.Column(db.Date, nullable=False)
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
+
 
 # This will create a database
 with app.app_context(): 
@@ -410,7 +420,62 @@ def delete_category(cat_id):
     flash(f'Category "{cat.name}" removed.', 'success')
     return redirect(url_for('profile'))
 
+#---------------------Recurring Bills---------------------
 
+@app.route('/recurring/add', methods=['POST'])
+def add_recurring():
+    if 'loggedin' not in session:
+        return redirect(url_for('login'))
+    
+    name = (request.form.get('name') or '').strip()
+    amount_str = (request.form.get('amount') or '').strip()
+    category = (request.form.get('category') or '').strip()
+    frequency = (request.form.get('frequency') or '').strip()
+    start_str = (request.form.get('start_date') or '').strip()
+
+    if not name or not amount_str or not category or not frequency:
+        flash('Please fill all fields.', 'error')
+        return redirect(url_for('index'))
+
+    try:
+        amount = float(amount_str)
+        if amount <= 0:
+            raise ValueError
+    except ValueError:
+        flash('Amount must be a positive number.', 'error')
+        return redirect(url_for('index'))
+
+    try:
+        start_date = datetime.strptime(start_str, "%Y-%m-%d").date() if start_str else date.today()
+    except ValueError:
+        start_date = date.today()
+
+    bill = RecurringBill(
+        name=name,
+        amount=amount,
+        category=category,
+        frequency=frequency,
+        next_due_date=start_date,
+        user_id=session['id']
+    )
+    db.session.add(bill)
+    db.session.commit()
+    flash(f'Recurring bill "{name}" added!', 'success')
+    return redirect(url_for('index'))
+
+
+@app.route('/recurring/delete/<int:bill_id>', methods=['POST'])
+def delete_recurring(bill_id):
+    if 'loggedin' not in session:
+        return redirect(url_for('login'))
+    bill = RecurringBill.query.get_or_404(bill_id)
+    if bill.user_id != session['id']:
+        flash('Unauthorized.', 'error')
+        return redirect(url_for('index'))
+    db.session.delete(bill)
+    db.session.commit()
+    flash('Recurring bill deleted.', 'success')
+    return redirect(url_for('index'))
 #-----------------------------------------------------------------------
 
 @app.route("/")
@@ -488,6 +553,8 @@ def index():
   cat_labels = [c for c, _ in cat_row]
   cat_amounts = [round(float(s or 0), 3) for _, s in cat_row]
 
+  recurring_bill = RecurringBill.query.filter_by(user_id=session['id']).all()
+
   user = User.query.get(session['id'])
 
   return render_template(
@@ -507,7 +574,8 @@ def index():
     monthly_avg=monthly_avg,             
     top_category=top_category,         
     top_category_amount=top_category_amount,  
-    current_user_pic = user.profile_pic
+    current_user_pic = user.profile_pic,
+    recurring_bills=recurring_bill
 
     )
 #----------------------------------Adding Category-----------------------------------------
