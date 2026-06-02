@@ -2,9 +2,14 @@
 <html lang="en" class="h-full bg-white">
 
 <head>
+  <!-- ==========================================
+       SITE METADATA & STYLESHEETS
+       ========================================== -->
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Dashboard · PocketPal</title>
+
+  <!-- Tailwind CSS Framework CDN -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -15,8 +20,13 @@
 
 <body class="h-full bg-white text-[#37352f]">
 
+  <!-- ==========================================
+       GLOBAL NAVIGATION BAR
+       ========================================== -->
   <nav class="border-b border-neutral-100 py-4 bg-white/80 backdrop-blur-md sticky top-0 z-50">
     <div class="mx-auto max-w-6xl px-4 flex justify-between items-center">
+
+      <!-- Brand Logo and Core App Links -->
       <div class="flex items-center gap-6">
         <a href="{{ url_for('index') }}" class="font-bold text-lg tracking-tight">PocketPal</a>
         <div class="flex gap-4">
@@ -27,11 +37,12 @@
         </div>
       </div>
 
+      <!-- User Greeting & Profile Picture Dropdown -->
       <div class="flex items-center gap-4">
         <span class="text-sm font-medium text-neutral-600">Hi, {{ session.username }}</span>
 
-        <!-- Profile dropdown -->
         <div class="relative">
+          <!-- Dropdown Trigger Button -->
           <button id="profile-btn" onclick="document.getElementById('profile-menu').classList.toggle('hidden')"
             class="w-8 h-8 rounded-full bg-black text-white flex items-center justify-center text-sm font-bold hover:bg-neutral-800 transition-colors focus:outline-none overflow-hidden">
             {% if current_user_pic %}
@@ -41,6 +52,7 @@
             {% endif %}
           </button>
 
+          <!-- Dropdown Menu Options -->
           <div id="profile-menu"
             class="hidden absolute right-0 mt-2 w-44 bg-white border border-neutral-200 rounded-xl shadow-lg z-50 py-1">
             <a href="{{ url_for('profile') }}"
@@ -58,6 +70,9 @@
     </div>
   </nav>
 
+  <!-- ==========================================
+       FLASH MESSAGES (Success / Error Alerts)
+       ========================================== -->
   <div class="mx-auto max-w-6xl px-4 mt-4">
     {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
@@ -71,22 +86,35 @@
     {% endwith %}
   </div>
 
+  <!-- ==========================================
+       MAIN CONTENT CONTAINER
+       ========================================== -->
   <main class="mx-auto max-w-6xl px-4 py-8">
+
+    <!-- Dashboard Header Titles -->
     <h1 class="text-3xl font-semibold mb-2">Dashboard</h1>
     <p class="text-neutral-500 mb-6">Track spending, filter by date/category, and manage records.</p>
 
-    <!-- Stats Cards -->
+    <!-- ==========================================
+         TOP METRICS / STATS CARDS
+         ========================================== -->
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+
+      <!-- Card 1: Total Spending Balance -->
       <div class="rounded-2xl bg-neutral-50 border border-neutral-200 px-5 py-4">
         <p class="text-xs text-neutral-500 mb-1">Total balance</p>
         <p class="text-2xl font-semibold text-black">${{ '%.2f'|format(all_time_total or 0) }}</p>
         <p class="text-xs text-neutral-400 mt-1">All time spending</p>
       </div>
+
+      <!-- Card 2: Monthly Average Cost -->
       <div class="rounded-2xl bg-neutral-50 border border-neutral-200 px-5 py-4">
         <p class="text-xs text-neutral-500 mb-1">Monthly average</p>
         <p class="text-2xl font-semibold text-black">${{ '%.2f'|format(monthly_avg or 0) }}</p>
         <p class="text-xs text-neutral-400 mt-1">Across all months</p>
       </div>
+
+      <!-- Card 3: Top Spending Category -->
       <div class="rounded-2xl bg-neutral-50 border border-neutral-200 px-5 py-4">
         <p class="text-xs text-neutral-500 mb-1">Top category</p>
         <p class="text-2xl font-semibold text-black">{{ top_category }}</p>
@@ -95,21 +123,90 @@
       </div>
     </div>
 
-    <!-- Filters + Add Expense -->
+    <!-- ==========================================
+         MONTHLY BUDGET LIMIT TRACKER PANEL
+         ========================================== -->
+    <div class="rounded-2xl border border-neutral-200 bg-white p-5 mb-6 shadow-sm">
+      <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+
+        <!-- Budget Numeric Summary Text -->
+        <div>
+          <h2 class="text-xs font-semibold text-neutral-400 uppercase tracking-wider">Monthly Budget Status</h2>
+          <p class="text-2xl font-bold mt-1 text-black">
+            ${{ '%.2f'|format(all_time_total or 0) }}
+            <span class="text-sm font-normal text-neutral-400">spent of ${{ '%.2f'|format(budget_limit or 0) }}
+              limit</span>
+          </p>
+        </div>
+
+        <!-- Inline Form to Set/Update Budget Limit -->
+        <form action="{{ url_for('update_budget') }}" method="POST" class="flex gap-2 items-center w-full sm:w-auto">
+          <input type="number" step="0.01" name="budget_limit" placeholder="Set Limit ($)"
+            value="{{ budget_limit if budget_limit > 0 else '' }}"
+            class="w-full sm:w-32 rounded-xl bg-neutral-50 border border-neutral-200 px-3 py-2 text-sm outline-none focus:border-black transition-colors"
+            required />
+          <button type="submit"
+            class="rounded-xl bg-black text-white px-4 py-2 hover:bg-neutral-800 transition-colors text-xs font-semibold whitespace-nowrap shadow-sm">
+            Set Budget
+          </button>
+        </form>
+      </div>
+
+      <!-- Progress Bar Visual Container -->
+      {% if budget_limit > 0 %}
+      <div class="mt-4">
+        <!-- Progress Bar Track Background -->
+        <div class="w-full bg-neutral-100 h-2.5 rounded-full overflow-hidden relative">
+          <!-- Active Color Fill Indicator (Turns Red if Limit is Met/Exceeded) -->
+          <div
+            class="h-full rounded-full transition-all duration-500 {% if budget_limit > 0 and all_time_total >= budget_limit %} bg-red-500 {% else %} bg-black {% endif %} w-[{{ spending_percentage }}%]">
+          </div>
+        </div>
+
+        <!-- Budget Dynamic Helper Alerts -->
+        <div class="flex justify-between items-center mt-2 text-xs">
+          {% if all_time_total >= budget_limit %}
+          <span class="text-red-500 font-medium flex items-center gap-1">⚠️ Budget limit Reached!</span>
+          {% else %}
+          <span class="text-neutral-400">{{ '%.1f'|format(spending_percentage) }}% utilized</span>
+          {% endif %}
+        </div>
+      </div>
+      {% else %}
+      <!-- Empty Placeholder State when Limit is $0 / Unconfigured -->
+      <p
+        class="text-xs text-neutral-400 mt-4 border border-dashed border-neutral-200 rounded-xl p-3 bg-neutral-50 text-center">
+        No budget limits configured yet. Input a threshold above to track your remaining allowance.
+      </p>
+      {% endif %}
+    </div>
+
+    <!-- ==========================================
+         FILTERS AND MANAGEMENT INTERFACES (Grid layout)
+         ========================================== -->
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
+
+      <!-- SUBSECTION: FILTERS LOGIC CONTROL PANEL -->
       <section class="lg:col-span-2 rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm">
         <h2 class="text-lg font-semibold mb-3">Filters</h2>
+
+        <!-- Expense Query Filter Fields -->
         <form method="get" action="{{ url_for('index') }}" class="grid grid-cols-1 md:grid-cols-5 gap-3 items-end pr-5">
+          <!-- Start Date Filter Selection -->
           <label class="text-sm">
             <span class="block mb-1 text-neutral-600">Start</span>
             <input type="date" value="{{start_str or ''}}" name="start"
               class="w-full rounded-xl bg-neutral-50 border border-neutral-200 px-3 py-2 text-black outline-none focus:border-black" />
           </label>
+
+          <!-- End Date Filter Selection -->
           <label class="text-sm">
             <span class="block mb-1 text-neutral-600">End</span>
             <input type="date" name="end" value="{{ end_str or ''}}"
               class="w-full rounded-xl bg-neutral-50 border border-neutral-200 px-3 py-2 text-black outline-none focus:border-black" />
           </label>
+
+          <!-- Category Selector Dropdown -->
           <label class="text-sm md:col-span-2">
             <span class="block mb-1 text-neutral-600">Category</span>
             <select name="category"
@@ -120,6 +217,8 @@
               {% endfor %}
             </select>
           </label>
+
+          <!-- Action Buttons for Filter -->
           <div class="flex gap-2">
             <button class="rounded-xl bg-black text-white px-4 py-2 hover:bg-neutral-800 transition-colors shadow-sm"
               type="submit">Apply</button>
@@ -128,6 +227,7 @@
           </div>
         </form>
 
+        <!-- Current Active Running Filter Summation Total Display -->
         <div class="mt-4 text-sm text-neutral-500">
           <span class="mr-2">Total:</span>
           <span
@@ -137,12 +237,16 @@
         </div>
       </section>
 
-      <!-- Add Expense -->
+      <!-- SUBSECTION: ADD EXPENSE SUBMISSION FORM PANEL -->
       <section class="rounded-2xl border border-neutral-200 bg-white p-4 shadow-sm">
         <h2 class="text-lg font-semibold mb-3">Add Expense</h2>
+
         <form method="post" action="{{url_for('add')}}" class="space-y-3" id="add-expense-form">
+          <!-- Text Description Input -->
           <input name="description" placeholder="Description"
             class="w-full rounded-xl bg-neutral-50 border border-neutral-200 px-3 py-2 text-black outline-none focus:border-black" />
+
+          <!-- Numeric Cost Amount & Calendar Input Row -->
           <div class="grid grid-cols-2 gap-3">
             <input name="amount" type="number" step="0.01" placeholder="Amount"
               class="w-full rounded-xl bg-neutral-50 border border-neutral-200 px-3 py-2 text-black outline-none focus:border-black" />
@@ -150,6 +254,7 @@
               class="w-full rounded-xl bg-neutral-50 border border-neutral-200 px-3 py-2 text-black outline-none focus:border-black" />
           </div>
 
+          <!-- Standard Predefined Dropdown Menu -->
           <select name="category" id="category-select" onchange="toggleCustomCategory(this)"
             class="w-full rounded-xl bg-neutral-50 border border-neutral-200 px-3 py-2 text-black outline-none focus:border-black">
             {% for c in categories %}
@@ -158,15 +263,18 @@
             <option value="__custom__">+ Add custom category...</option>
           </select>
 
+          <!-- Hidden Supplemental Field for Appending Dynamic New Categories -->
           <div id="custom-category-wrapper" class="hidden">
             <input name="custom_category" id="custom-category-input" placeholder="Enter category name"
               class="w-full rounded-xl bg-neutral-50 border border-neutral-200 px-3 py-2 text-black outline-none focus:border-black" />
             <p class="text-xs text-neutral-400 mt-1">This will be saved to your category list.</p>
           </div>
 
+          <!-- Description Text Area Field -->
           <textarea name="notes" placeholder="Notes (optional)" rows="2"
             class="w-full rounded-xl bg-neutral-50 border border-neutral-200 px-3 py-2 text-black outline-none focus:border-black resize-none text-sm"></textarea>
 
+          <!-- Submit Button -->
           <button
             class="w-full rounded-xl bg-black text-white px-4 py-2 hover:bg-neutral-800 transition-colors font-semibold"
             type="submit">Add Expense</button>
@@ -174,13 +282,15 @@
       </section>
     </div>
 
-    <!-- ===================== RECURRING BILLS (moved above expenses) ===================== -->
+    <!-- ==========================================
+         RECURRING BILLS LOG INTERFACE SECTION
+         ========================================== -->
     <section class="mt-8 rounded-2xl border border-neutral-200 bg-white shadow-sm overflow-hidden">
       <div class="px-4 py-3 border-b border-neutral-100">
         <h2 class="text-lg font-semibold">Recurring Bills</h2>
       </div>
 
-      <!-- Add recurring bill form -->
+      <!-- Add New Recurring Bill Parameters Form Row -->
       <div class="px-4 py-4 border-b border-neutral-100">
         <form method="post" action="{{ url_for('add_recurring') }}"
           class="grid grid-cols-1 md:grid-cols-6 gap-3 items-end">
@@ -207,7 +317,7 @@
         </form>
       </div>
 
-      <!-- Recurring bills list — scrollable -->
+      <!-- Recurring Bills Display List (Data Table Container) -->
       <div class="overflow-x-auto">
         <div class="overflow-y-auto max-h-64" style="scrollbar-width: thin; scrollbar-color: #d4d4d4 transparent;">
           <table class="min-w-full text-sm">
@@ -254,8 +364,12 @@
       </div>
     </section>
 
-    <!-- ===================== EXPENSES TABLE ===================== -->
+    <!-- ==========================================
+         PRIMARY EXPENSES LOG HISTORY DATA TABLE
+         ========================================== -->
     <section class="mt-8 rounded-2xl border border-neutral-200 bg-white shadow-sm overflow-hidden">
+
+      <!-- Table Header & Export Modal Trigger -->
       <div class="px-4 py-3 border-b border-neutral-100 flex flex-row justify-between items-center w-full">
         <h2 class="text-lg font-semibold">Expenses</h2>
         <button onclick="openExportModal()"
@@ -263,6 +377,8 @@
           Download Expenses
         </button>
       </div>
+
+      <!-- Main Expense Loop Table View Structure -->
       <div class="overflow-x-auto">
         <div class="overflow-y-auto max-h-96" style="scrollbar-width: thin; scrollbar-color: #d4d4d4 transparent;">
           <table class="min-w-full text-sm">
@@ -281,7 +397,7 @@
               {% for e in expenses %}
 
               {% if edit_id == e.id %}
-              <!-- Inline edit row -->
+              <!-- CONDITION A: INLINE ROW EDITING MODE VIEWPORT ACTIVE -->
               <tr class="bg-neutral-50">
                 <td colspan="6" class="px-4 py-3">
                   <form method="post" action="{{ url_for('edit_expense', expense_id=e.id) }}"
@@ -315,7 +431,7 @@
               </tr>
 
               {% else %}
-              <!-- Normal expense row -->
+              <!-- CONDITION B: STANDARD READ-ONLY RECORD ROW LOG DISPLAY -->
               <tr class="hover:bg-neutral-50 transition-colors">
                 <td class="px-4 py-3">{{ e.date.strftime("%Y-%m-%d") if e.date else '' }}</td>
                 <td class="px-4 py-3">{{ e.description }}</td>
@@ -344,6 +460,7 @@
 
               {% endfor %}
               {% else %}
+              <!-- CONDITION C: BLANK FALLBACK STATE FOR EMPTY LOG OVERVIEW -->
               <tr>
                 <td colspan="5" class="px-4 py-6 text-center text-neutral-400">No expenses yet.</td>
               </tr>
@@ -356,8 +473,12 @@
 
   </main>
 
+  <!-- ==========================================
+       JAVASCRIPT INTERACTION SCRIPTS BLOCK
+       ========================================== -->
   <script>
-    // Close profile dropdown when clicking outside
+    // PROFILE NAVIGATION MENU DROPDOWN INTERACTIVES
+    // Closes the navbar profile menu dropdown if the user registers clicks outside the bounding box
     document.addEventListener('click', function (e) {
       const btn = document.getElementById('profile-btn');
       const menu = document.getElementById('profile-menu');
@@ -366,7 +487,8 @@
       }
     });
 
-    // Toggle custom category input
+    // DYNAMIC CUSTOM EXPENSE CATEGORY SELECTION FIELD CONTROLLER
+    // Toggles visibility on hidden custom text input elements if specific dropdown tags are active
     function toggleCustomCategory(select) {
       const wrapper = document.getElementById('custom-category-wrapper');
       const input = document.getElementById('custom-category-input');
@@ -381,7 +503,7 @@
       }
     }
 
-    // Webkit scrollbar styling (for Chrome/Safari)
+    // CUSTOM CSS INJECTION FOR WEBKIT COMPATIBLE BROWSER SCROLLBARS
     const style = document.createElement('style');
     style.textContent = `
       .overflow-y-auto::-webkit-scrollbar {
@@ -400,28 +522,29 @@
     `;
     document.head.appendChild(style);
 
-    // If there's an active edit row, scroll it into view smoothly
+    // AUTO-FOCUS VIEWPORT ANCHOR ROUTINE FOR INLINE EDIT TARGET ROWS
+    // If there's an active edit row initialized by the application, scroll it into view smoothly on load
     const editRow = document.querySelector('tr.bg-neutral-50 form');
     if (editRow) {
       editRow.closest('tr').scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
 
-
-    // Function to dynamically load and display export.html as a popup
+    // EXPORT COMPONENT DYNAMIC MODAL DOM INJECTION PIPELINES
+    // Function to dynamically load and display export.html as a popup fragment via AJAX
     async function openExportModal() {
       const response = await fetch("{{ url_for('export') }}");
       const html = await response.text();
       document.getElementById('modal-container').innerHTML = html;
     }
 
-    // Function to safely clear and close the popup
+    // Function to safely clear and dismantle the popup modal out of the layout structure
     function closeExportModal(event, forceClose = false) {
       if (forceClose || event.target === document.getElementById('export-modal')) {
         document.getElementById('modal-container').innerHTML = '';
       }
     }
 
-    // Handler for the filtered processing inside the modal view
+    // Handler for routing filtered download queries inside the asynchronous modal overlay
     function downloadFilteredModal(format) {
       const start = document.getElementById('modal-start').value;
       const end = document.getElementById('modal-end').value;
@@ -430,9 +553,11 @@
       const url = `${base}?filtered=true&start=${start}&end=${end}&category=${category}`;
       window.location.href = url;
     }
-
   </script>
 
+  <!-- ==========================================
+       ASYNC MODAL INJECTION TARGET ANCHOR CONTAINER
+       ========================================== -->
   <div id="modal-container"></div>
 
 </body>

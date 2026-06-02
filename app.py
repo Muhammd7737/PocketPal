@@ -78,13 +78,15 @@ class User(db.Model):
     email = db.Column(db.String(120), unique=True, nullable=True)
     google_id = db.Column(db.String(128), unique=True, nullable=True)
     profile_pic = db.Column(db.Text, nullable=True) 
-#---------------------------------------
+    budget_limit = db.Column(db.Float, nullable=False, default=0.0)
+
+#-----------Custom Categories-----------
 class CustomCategory(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
     name = db.Column(db.String(50), nullable=False)
  
-#--------------Recurring Bill------------
+#------------Recurring Bill--------------
 class RecurringBill(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(120), nullable=False)
@@ -94,7 +96,7 @@ class RecurringBill(db.Model):
     next_due_date = db.Column(db.Date, nullable=False)
     user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
 
-
+#------------------------------Database Initialization and Migration-----------------------------
 # This will create a database
 with app.app_context(): 
     db.create_all()
@@ -105,6 +107,9 @@ with app.app_context():
             ))
             conn.execute(db.text(
                 'ALTER TABLE expense ADD COLUMN IF NOT EXISTS notes TEXT'
+            ))
+            conn.execute(db.text(
+                'ALTER TABLE "user" ADD COLUMN IF NOT EXISTS budget_limit FLT8 DEFAULT 0.0'
             ))
             conn.commit()
     except Exception as e:
@@ -392,6 +397,29 @@ def delete_account():
     return redirect(url_for('login'))
 
 
+#---------------------Budget Limits---------------------------
+@app.route('/update-budget', methods=['POST'])
+def update_budget():
+    if 'loggedin' not in session:
+        return redirect(url_for('login'))
+        
+    budget_str = (request.form.get('budget_limit') or '').strip()
+    user = User.query.get(session['id'])
+    
+    try:
+        limit = float(budget_str)
+        if limit < 0:
+            raise ValueError
+        user.budget_limit = limit
+        db.session.commit()
+        flash('Monthly budget limit updated!', 'success')
+    except ValueError:
+        flash('Budget limit must be a valid positive number.', 'error')
+        
+    return redirect(url_for('index'))
+
+
+
 #---------------------Custom Category---------------------------
  
 @app.route('/categories/add', methods=['POST'])
@@ -495,8 +523,8 @@ def delete_recurring(bill_id):
     db.session.commit()
     flash('Recurring bill deleted.', 'success')
     return redirect(url_for('index'))
-#-----------------------------------------------------------------------
 
+#--------------------------------INDEX-------------------------------------
 @app.route("/")
 def index():
 
@@ -584,6 +612,16 @@ def index():
 
   user = User.query.get(session['id'])
 
+  # Get the current user details to get their budget limit
+  current_user = User.query.get(session['id'])
+  budget_limit = current_user.budget_limit or 0.0
+
+  # Calculate how close they are to hitting the limit (0 to 100%)
+  if budget_limit > 0:
+      spending_percentage = min((all_time_total / budget_limit) * 100, 100)
+  else:
+      spending_percentage = 0.0
+
   return render_template(
     
     "index.html", 
@@ -603,8 +641,9 @@ def index():
     top_category_amount=top_category_amount,  
     current_user_pic = user.profile_pic,
     recurring_bills=recurring_bill,
-    edit_id=edit_id
-
+    edit_id=edit_id,
+    budget_limit=budget_limit,
+    spending_percentage=spending_percentage,
     )
 #----------------------------------Adding Category-----------------------------------------
 
