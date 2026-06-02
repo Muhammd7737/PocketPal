@@ -1,0 +1,68 @@
+<div id="export-modal" class="fixed inset-0 bg-black/40 backdrop-blur-sm z-[100] flex items-center justify-center p-4" onclick="closeExportModal(event)">
+    
+    <div class="bg-white rounded-2xl border border-neutral-200 max-w-xl w-full p-6 shadow-2xl space-y-6 relative animate-in fade-in zoom-in-95 duration-150">
+        
+        <button onclick="closeExportModal(null, true)" class="absolute top-4 right-4 text-neutral-400 hover:text-black transition-colors text-xl font-bold">
+            &times;
+        </button>
+
+        <div>
+            <h1 class="text-2xl font-semibold mb-1">Export Expenses</h1>
+            <p class="text-neutral-500 text-sm">Download your expenses as CSV or PDF.</p>
+        </div>
+
+        <div class="bg-neutral-50 rounded-xl border border-neutral-200 p-4">
+            <h2 class="text-xs font-semibold text-neutral-500 uppercase tracking-wide mb-1">All Expenses</h2>
+            <p class="text-xs text-neutral-400 mb-3">Download your complete expense history.</p>
+            <div class="flex gap-2">
+                <a href="{{ url_for('download_csv') }}"
+                   class="rounded-lg bg-black text-white text-xs px-4 py-2 hover:bg-neutral-800 transition-colors font-medium">
+                    Download CSV
+                </a>
+                <a href="{{ url_for('download_pdf') }}"
+                   class="rounded-lg border border-neutral-200 bg-white text-xs px-4 py-2 hover:bg-neutral-50 transition-colors font-medium">
+                    Download PDF
+                </a>
+            </div>
+        </div>
+
+        <div class="bg-neutral-50 rounded-xl border border-neutral-200 p-4">
+            <h2 class="text-xs font-semibold text-neutral-500 uppercase tracking-wide mb-1">Filtered Export</h2>
+            <p class="text-xs text-neutral-400 mb-3">Filter by date range or category before downloading.</p>
+
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+                <div>
+                    <label class="block text-xs font-medium text-neutral-600 mb-1">Start Date</label>
+                    <input type="date" id="modal-start" 
+                           class="w-full rounded-xl bg-white border border-neutral-200 px-3 py-1.5 text-xs outline-none focus:border-black transition-all">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-neutral-600 mb-1">End Date</label>
+                    <input type="date" id="modal-end" value="{{ today }}"
+                           class="w-full rounded-xl bg-white border border-neutral-200 px-3 py-1.5 text-xs outline-none focus:border-black transition-all">
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-neutral-600 mb-1">Category</label>
+                    <select id="modal-category"
+                            class="w-full rounded-xl bg-white border border-neutral-200 px-3 py-1.5 text-xs outline-none focus:border-black transition-all">
+                        <option value="">All</option>
+                        {% for c in categories %}
+                        <option value="{{ c }}">{{ c }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            </div>
+
+            <div class="flex gap-2">
+                <button onclick="downloadFilteredModal('csv')"
+                        class="rounded-lg bg-black text-white text-xs px-4 py-2 hover:bg-neutral-800 transition-colors font-medium">
+                    Download CSV
+                </button>
+                <button onclick="downloadFilteredModal('pdf')"
+                        class="rounded-lg border border-neutral-200 bg-white text-xs px-4 py-2 hover:bg-neutral-50 transition-colors font-medium">
+                    Download PDF
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

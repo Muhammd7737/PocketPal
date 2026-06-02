@@ -13,6 +13,15 @@ from itsdangerous import URLSafeTimedSerializer
 import os
 import base64 
 
+#-----------imports for Expense Download--------------#
+import csv
+import io
+from reportlab.lib.pagesizes import letter
+from reportlab.lib import colors
+from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+from reportlab.lib.styles import getSampleStyleSheet
+from flask import Response
+
 app = Flask(__name__)
 
 load_dotenv('a.env')
@@ -58,7 +67,7 @@ class Expense(db.Model):
   category = db.Column(db.String(50), nullable=False)
   date = db.Column(db.Date, nullable=False, default=date.today)
   user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
-
+  notes = db.Column(db.String(500), nullable=True)
 
 #-------------Login Code---------------
 class User(db.Model):
@@ -94,7 +103,9 @@ with app.app_context():
             conn.execute(db.text(
                 'ALTER TABLE "user" ADD COLUMN IF NOT EXISTS profile_pic TEXT'
             ))
-            conn.commit()
+            conn.execute(db.text(
+                'ALTER TABLE expense ADD COLUMN IF NOT EXISTS notes TEXT'
+            ))
     except Exception as e:
         print(f"Migration error: {e}")
         pass     
@@ -499,6 +510,8 @@ def index():
   
   categories = get_user_categories(session['id'])
 
+  edit_id = request.args.get('edit_id', type=int)
+
   # all expenses for the user 
   all_expenses = Expense.query.filter_by(user_id=session['id']).all()
 
@@ -588,7 +601,8 @@ def index():
     top_category=top_category,         
     top_category_amount=top_category_amount,  
     current_user_pic = user.profile_pic,
-    recurring_bills=recurring_bill
+    recurring_bills=recurring_bill,
+    edit_id=edit_id
 
     )
 #----------------------------------Adding Category-----------------------------------------
@@ -601,6 +615,7 @@ def add():
   description = (request.form.get("description") or "").strip()
   amount_str = (request.form.get("amount") or "").strip()
   date_str = (request.form.get("date") or "").strip()
+  notes = (request.form.get("notes") or "").strip()
  
   # Handle custom category
   category = (request.form.get("category") or "").strip()
@@ -638,12 +653,67 @@ def add():
     d = date.today()
  
   e = Expense(description=description, amount=amount, category=category, date=d,
-              user_id=session['id'])
+              user_id=session['id'], notes=notes)
   db.session.add(e)
   db.session.commit()
  
   flash("Expense added", "success")
   return redirect(url_for("index"))
+
+#-----------------------------Edit Expense-------------------------------
+@app.route('/edit/<int:expense_id>', methods=['GET'])
+def edit(expense_id):
+   if 'loggedin' not in session:
+      return redirect(url_for('login'))
+   
+   e = Expense.query.get_or_404(expense_id)
+
+   if e.user_id != session['id']:
+      flash('Unauthorized', 'Error')
+      return redirect(url_for('index'))
+   
+   categories = get_user_categories(session['id'])
+   return redirect(url_for('index', edit_id=expense_id))
+
+@app.route('/edit/<int:expense_id>', methods=['POST'])
+def edit_expense(expense_id):
+    if 'loggedin' not in session:
+        return redirect(url_for('login'))
+    e = Expense.query.get_or_404(expense_id)
+    if e.user_id != session['id']:
+        flash('Unauthorized.', 'error')
+        return redirect(url_for('index'))
+    
+    description = (request.form.get('description') or '').strip()
+    amount_str = (request.form.get('amount') or '').strip()
+    category = (request.form.get('category') or '').strip()
+    date_str = (request.form.get('date') or '').strip()
+    notes = (request.form.get('notes') or '').strip()
+
+    if not description or not amount_str or not category:
+        flash('Please fill all fields.', 'error')
+        return redirect(url_for('index'))
+
+    try:
+        amount = float(amount_str)
+        if amount <= 0:
+            raise ValueError
+    except ValueError:
+        flash('Amount must be a positive number.', 'error')
+        return redirect(url_for('index'))
+
+    try:
+        e.date = datetime.strptime(date_str, "%Y-%m-%d").date() if date_str else e.date
+    except ValueError:
+        pass
+
+    e.description = description
+    e.amount = amount
+    e.category = category
+    e.notes = notes
+    db.session.commit()
+    flash('Expense updated!', 'success')
+    return redirect(url_for('index'))
  
 #------------------------------Delete Expense------------------------------
  
@@ -654,7 +724,128 @@ def delete(expense_id):
   db.session.commit()
   flash("Expense deleted", "success")
   return redirect(url_for("index"))
- 
+
+#------------------------------Download/Export Expense----------------------------
+@app.route('/export')
+def export():
+    if 'loggedin' not in session:
+        return redirect(url_for('login'))
+    user = User.query.get(session['id'])
+    categories = get_user_categories(session['id'])
+    return render_template('export.html', 
+        categories=categories,
+        today=date.today().isoformat(),
+        current_user_pic=user.profile_pic
+    )
+
+def expense_download(user_id, filtered=False, start=None, end=None, category=None):
+    q = Expense.query.filter_by(user_id=user_id)
+    if filtered:
+        if start:
+            q = q.filter(Expense.date >= start)
+        if end: 
+            q = q.filter(Expense.date <= end)
+        if category:
+            q = q.filter(Expense.category == category)
+    return q.order_by(Expense.date.desc()).all()           
+
+@app.route('/download/csv')
+def download_csv():
+    if 'loggedin' not in session:
+        return redirect(url_for('login'))
+
+    filtered = request.args.get('filtered') == 'true'
+    start = prase_date_or_none(request.args.get('start', ''))
+    end = prase_date_or_none(request.args.get('end', ''))
+    category = request.args.get('category', '').strip()
+
+    expenses = expense_download(session['id'], filtered, start, end, category)
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(['Date', 'Description', 'Category', 'Amount', 'Notes'])
+    for e in expenses:
+        writer.writerow([
+            e.date.strftime('%Y-%m-%d'),
+            e.description,
+            e.category,
+            f'{e.amount:.2f}',
+            e.notes or ''
+        ])
+
+    output.seek(0)
+    filename = 'expenses_filtered.csv' if filtered else 'expenses_all.csv'
+    return Response(
+        output.getvalue(),
+        mimetype='text/csv',
+        headers={'Content-Disposition': f'attachment; filename={filename}'}
+    )
+
+
+@app.route('/download/pdf')
+def download_pdf():
+    if 'loggedin' not in session:
+        return redirect(url_for('login'))
+
+    filtered = request.args.get('filtered') == 'true'
+    start = prase_date_or_none(request.args.get('start', ''))
+    end = prase_date_or_none(request.args.get('end', ''))
+    category = request.args.get('category', '').strip()
+
+    expenses = expense_download(session['id'], filtered, start, end, category)
+
+    buffer = io.BytesIO()
+    doc = SimpleDocTemplate(buffer, pagesize=letter)
+    styles = getSampleStyleSheet()
+    elements = []
+
+    # Title
+    title = 'Filtered Expenses' if filtered else 'All Expenses'
+    elements.append(Paragraph(f'PocketPal — {title}', styles['Title']))
+    elements.append(Paragraph(f'Generated: {date.today().strftime("%Y-%m-%d")}', styles['Normal']))
+    elements.append(Spacer(1, 20))
+
+    # Table
+    data = [['Date', 'Description', 'Category', 'Amount', 'Notes']]
+    for e in expenses:
+        data.append([
+            e.date.strftime('%Y-%m-%d'),
+            e.description[:40],
+            e.category,
+            f'${e.amount:.2f}',
+            (e.notes or '')[:40]
+        ])
+
+    # Total row
+    total = sum(e.amount for e in expenses)
+    data.append(['', '', 'Total', f'${total:.2f}', ''])
+
+    table = Table(data, colWidths=[80, 160, 100, 70, 120])
+    table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.black),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('FONTSIZE', (0, 0), (-1, 0), 10),
+        ('BOTTOMPADDING', (0, 0), (-1, 0), 10),
+        ('TOPPADDING', (0, 0), (-1, 0), 10),
+        ('ROWBACKGROUNDS', (0, 1), (-1, -2), [colors.white, colors.HexColor('#f5f5f5')]),
+        ('FONTNAME', (0, 1), (-1, -1), 'Helvetica'),
+        ('FONTSIZE', (0, 1), (-1, -1), 9),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.HexColor('#e5e5e5')),
+        ('FONTNAME', (0, -1), (-1, -1), 'Helvetica-Bold'),
+        ('TOPPADDING', (0, -1), (-1, -1), 8),
+    ]))
+    elements.append(table)
+
+    doc.build(elements)
+    buffer.seek(0)
+    filename = 'expenses_filtered.pdf' if filtered else 'expenses_all.pdf'
+    return Response(
+        buffer.getvalue(),
+        mimetype='application/pdf',
+        headers={'Content-Disposition': f'attachment; filename={filename}'}
+    )
+
 #-----------------------------Analytics----------------------------------------
 @app.route("/analytics")
 def analytics():
