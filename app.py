@@ -109,7 +109,7 @@ with app.app_context():
                 'ALTER TABLE expense ADD COLUMN IF NOT EXISTS notes TEXT'
             ))
             conn.execute(db.text(
-                'ALTER TABLE "user" ADD COLUMN IF NOT EXISTS budget_limit FLT8 DEFAULT 0.0'
+                'ALTER TABLE "user" ADD COLUMN IF NOT EXISTS budget_limit FLOAT DEFAULT 0.0'
             ))
             conn.commit()
     except Exception as e:
@@ -610,15 +610,19 @@ def index():
 
   recurring_bill = RecurringBill.query.filter_by(user_id=session['id']).all()
 
-  user = User.query.get(session['id'])
+  #user = User.query.get(session['id'])
 
   # Get the current user details to get their budget limit
   current_user = User.query.get(session['id'])
-  budget_limit = current_user.budget_limit or 0.0
+  budget_limit = float(current_user.budget_limit) if (current_user and current_user.budget_limit is not None) else 0.0
+  user_pic = current_user.profile_pic if current_user else None
 
-  # Calculate how close they are to hitting the limit (0 to 100%)
-  if budget_limit > 0:
-      spending_percentage = min((all_time_total / budget_limit) * 100, 100)
+  # Double check that all_time_total is a valid number
+  safe_total = float(all_time_total) if all_time_total else 0.0
+
+  # Protect against division by zero and ensure clean float math
+  if budget_limit > 0.0:
+      spending_percentage = min((safe_total / budget_limit) * 100, 100)
   else:
       spending_percentage = 0.0
 
@@ -639,7 +643,7 @@ def index():
     monthly_avg=monthly_avg,             
     top_category=top_category,         
     top_category_amount=top_category_amount,  
-    current_user_pic = user.profile_pic,
+    current_user_pic = user_pic,
     recurring_bills=recurring_bill,
     edit_id=edit_id,
     budget_limit=budget_limit,
