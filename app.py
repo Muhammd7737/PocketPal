@@ -105,7 +105,8 @@ with app.app_context():
             ))
             conn.execute(db.text(
                 'ALTER TABLE expense ADD COLUMN IF NOT EXISTS notes TEXT'
-            ))conn.commit()
+            ))
+            conn.commit()
     except Exception as e:
         print(f"Migration error: {e}")
         pass     
