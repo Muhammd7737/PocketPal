@@ -133,7 +133,8 @@
         <div>
           <h2 class="text-xs font-semibold text-neutral-400 uppercase tracking-wider">Monthly Budget Status</h2>
           <p class="text-2xl font-bold mt-1 text-black">
-            ${{ '%.2f'|format(all_time_total or 0) }}
+            <!-- CHANGED: Swapped all_time_total for current_month_total -->
+            ${{ '%.2f'|format(current_month_total or 0) }}
             <span class="text-sm font-normal text-neutral-400">spent of ${{ '%.2f'|format(budget_limit or 0) }}
               limit</span>
           </p>
@@ -157,15 +158,16 @@
       <div class="mt-4">
         <!-- Progress Bar Track Background -->
         <div class="w-full bg-neutral-100 h-2.5 rounded-full overflow-hidden relative">
-          <!-- Active Color Fill Indicator (Turns Red if Limit is Met/Exceeded) -->
+          <!-- Active Color Fill Indicator (Turns Red if Limit is Met/Exceeded for the current month) -->
           <div
-            class="h-full rounded-full transition-all duration-500 {% if budget_limit > 0 and all_time_total >= budget_limit %} bg-red-500 {% else %} bg-black {% endif %} w-[{{ spending_percentage }}%]">
+            class="h-full rounded-full transition-all duration-500 {% if current_month_total >= budget_limit %} bg-red-500 {% else %} bg-black {% endif %} [width:{{ spending_percentage }}%]">
           </div>
         </div>
 
         <!-- Budget Dynamic Helper Alerts -->
         <div class="flex justify-between items-center mt-2 text-xs">
-          {% if all_time_total >= budget_limit %}
+          <!-- CHANGED: Alerts evaluate current_month_total instead of all_time_total -->
+          {% if current_month_total >= budget_limit %}
           <span class="text-red-500 font-medium flex items-center gap-1">⚠️ Budget limit Reached!</span>
           {% else %}
           <span class="text-neutral-400">{{ '%.1f'|format(spending_percentage) }}% utilized</span>

@@ -1,6 +1,7 @@
 #from unicodedata import category
 from dotenv import load_dotenv
 from flask import Flask, render_template, request, url_for, make_response, flash, redirect, session
+from flask_login import current_user
 from flask_sqlalchemy import SQLAlchemy
 from datetime import date, datetime
 from sqlalchemy import func
@@ -410,15 +411,20 @@ def update_budget():
         limit = float(budget_str)
         if limit < 0:
             raise ValueError
+            
         user.budget_limit = limit
         db.session.commit()
-        flash('Monthly budget limit updated!', 'success')
+        
+        # Inform the user of their custom threshold status right away
+        if limit == 0:
+            flash('Monthly budget limit cleared.', 'success')
+        else:
+            flash(f'Monthly budget limit updated to ${limit:.2f}!', 'success')
+            
     except ValueError:
         flash('Budget limit must be a valid positive number.', 'error')
         
     return redirect(url_for('index'))
-
-
 
 #---------------------Custom Category---------------------------
  
@@ -612,17 +618,26 @@ def index():
 
   #user = User.query.get(session['id'])
 
+  today_date = date.today()
+  
+  # Filter all user expenses down to ONLY the current year and current month
+  current_month_expenses = Expense.query.filter(
+      Expense.user_id == session['id'],
+      func.extract('year', Expense.date) == today_date.year,
+      func.extract('month', Expense.date) == today_date.month
+  ).all()
+  
+  # Calculate the total spent strictly within this calendar month
+  current_month_total = round(sum(e.amount for e in current_month_expenses), 2)
+
   # Get the current user details to get their budget limit
   current_user = User.query.get(session['id'])
   budget_limit = float(current_user.budget_limit) if (current_user and current_user.budget_limit is not None) else 0.0
   user_pic = current_user.profile_pic if current_user else None
-
-  # Double check that all_time_total is a valid number
-  safe_total = float(all_time_total) if all_time_total else 0.0
-
-  # Protect against division by zero and ensure clean float math
+  
+  # Calculate how close they are to hitting the limit based on CURRENT MONTH ONLY
   if budget_limit > 0.0:
-      spending_percentage = min((safe_total / budget_limit) * 100, 100)
+        spending_percentage = min((current_month_total / budget_limit) * 100, 100)
   else:
       spending_percentage = 0.0
 
@@ -648,6 +663,7 @@ def index():
     edit_id=edit_id,
     budget_limit=budget_limit,
     spending_percentage=spending_percentage,
+    current_month_total=current_month_total,
     )
 #----------------------------------Adding Category-----------------------------------------
 
