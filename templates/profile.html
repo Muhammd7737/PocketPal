@@ -8,190 +8,220 @@
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
 
-<body class="min-h-full text-[#37352f]">
+<body class="h-full text-[#37352f] flex overflow-hidden">
 
-    <nav class="bg-white border-b border-neutral-200 px-6 py-3 flex items-center justify-between">
-        <div class="flex items-center gap-6">
-            <span class="font-bold text-lg">PocketPal</span>
-            <a href="{{ url_for('index') }}"
-                class="text-sm text-neutral-500 hover:text-black transition-colors">Dashboard</a>
-            <a href="{{ url_for('analytics') }}"
-                class="text-sm text-neutral-500 hover:text-black transition-colors">Analytics</a>
+    <aside class="w-64 bg-white border-r border-neutral-200 flex flex-col justify-between p-6 flex-shrink-0">
+        <div class="space-y-8">
+            <div class="flex items-center gap-2 px-2">
+                <span class="font-bold text-2xl tracking-tight">PocketPal</span>
+            </div>
+
+            <nav class="flex flex-col gap-1">
+                <a href="{{ url_for('index') }}"
+                    class="flex items-center gap-3 text-sm font-medium text-neutral-500 hover:text-black hover:bg-neutral-50 rounded-xl px-3 py-2.5 transition-all">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"></path></svg>
+                    Dashboard
+                </a>
+                <a href="{{ url_for('analytics') }}"
+                    class="flex items-center gap-3 text-sm font-medium text-neutral-500 hover:text-black hover:bg-neutral-50 rounded-xl px-3 py-2.5 transition-all">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 002 2h2a2 2 0 002-2"></path></svg>
+                    Analytics
+                </a>
+                <a href="#"
+                    class="flex items-center gap-3 text-sm font-semibold text-black bg-neutral-100 rounded-xl px-3 py-2.5 transition-all">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                    Profile
+                </a>
+            </nav>
         </div>
-        <div class="flex items-center gap-3">
-            <span class="text-sm text-neutral-500">Hi, {{ user.username }}</span>
+
+        <div class="border-t border-neutral-100 pt-4 space-y-3">
+            <div class="flex items-center justify-between px-2">
+                <span class="text-sm font-medium text-neutral-500">Hi, {{ user.username }}</span>
+            </div>
             <a href="{{ url_for('logout') }}"
-                class="text-sm border border-neutral-200 rounded-lg px-3 py-1 hover:bg-neutral-50 transition-colors">Logout</a>
+                class="flex items-center gap-3 text-sm font-medium text-neutral-500 hover:text-red-600 hover:bg-red-50/50 rounded-xl px-3 py-2.5 transition-all w-full">
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                Logout
+            </a>
         </div>
-    </nav>
+    </aside>
 
-    <div class="max-w-2xl mx-auto px-4 py-10 space-y-6">
+    <main class="flex-1 overflow-y-auto">
+        <div class="max-w-4xl mx-auto px-8 py-10 space-y-6">
 
-        {% with messages = get_flashed_messages(with_categories=true) %}
-        {% if messages %}
-        {% for category, message in messages %}
-        <div
-            class="text-xs p-3 rounded-xl border {% if category == 'error' %}bg-red-50 text-red-600 border-red-100{% else %}bg-green-50 text-green-600 border-green-100{% endif %}">
-            {{ message }}
-        </div>
-        {% endfor %}
-        {% endif %}
-        {% endwith %}
+            {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+            {% for category, message in messages %}
+            <div class="text-xs p-3 rounded-xl border {% if category == 'error' %}bg-red-50 text-red-600 border-red-100{% else %}bg-green-50 text-green-600 border-green-100{% endif %}">
+                {{ message }}
+            </div>
+            {% endfor %}
+            {% endif %}
+            {% endwith %}
 
-        <div class="bg-white rounded-2xl border border-neutral-200 p-6 shadow-sm">
-            <h2 class="text-sm font-semibold text-neutral-500 uppercase tracking-wide mb-4">Profile Picture</h2>
-            <div class="flex items-center gap-6">
-                <div
-                    class="w-20 h-20 rounded-full overflow-hidden bg-black flex items-center justify-center flex-shrink-0">
-                    {% if user.profile_pic %}
-                    <img src="{{ user.profile_pic }}" alt="Profile" class="w-full h-full object-cover">
-                    {% else %}
-                    <span class="text-white text-2xl font-bold">{{ user.username[0].upper() }}</span>
-                    {% endif %}
-                </div>
-                <form action="{{ url_for('upload_pic') }}" method="post" enctype="multipart/form-data"
-                    class="flex flex-col gap-2">
-                    <label class="text-xs text-neutral-500 mb-1">Upload a new photo (max 2MB)</label>
-                    <div class="flex items-center gap-2">
-                        <input type="file" name="profile_pic" accept="image/*" required
-                            class="text-xs text-neutral-600 file:mr-2 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:bg-neutral-100 file:text-neutral-700 hover:file:bg-neutral-200">
-                        <button type="submit"
-                            class="rounded-lg bg-black text-white text-xs px-4 py-2 hover:bg-neutral-800 transition-colors">
-                            Upload
-                        </button>
+            <div class="bg-white rounded-2xl border border-neutral-200 p-6 shadow-sm flex items-center justify-between gap-6">
+                <div class="flex items-center gap-6">
+                    <div class="w-20 h-20 rounded-full overflow-hidden bg-black flex items-center justify-center flex-shrink-0 ring-4 ring-neutral-50">
+                        {% if user.profile_pic %}
+                        <img src="{{ user.profile_pic }}" alt="Profile" class="w-full h-full object-cover">
+                        {% else %}
+                        <span class="text-white text-2xl font-bold tracking-wider">{{ user.username[0].upper() }}</span>
+                        {% endif %}
                     </div>
+                    <div>
+                        <h2 class="text-base font-bold text-neutral-800">Profile Picture</h2>
+                        <p class="text-xs text-neutral-400 mt-0.5">Upload a new photo (max 2MB)</p>
+                    </div>
+                </div>
+                <form action="{{ url_for('upload_pic') }}" method="post" enctype="multipart/form-data" class="flex items-center gap-3">
+                    <input type="file" name="profile_pic" accept="image/*" required
+                        class="text-xs text-neutral-600 max-w-[180px] file:mr-3 file:py-1.5 file:px-3 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-neutral-100 file:text-neutral-700 hover:file:bg-neutral-200 file:cursor-pointer transition-all">
+                    <button type="submit" class="rounded-xl bg-black text-white text-xs font-semibold px-4 py-2 hover:bg-neutral-800 transition-all shadow-sm">
+                        Upload
+                    </button>
                 </form>
             </div>
-        </div>
 
-        <div class="bg-white rounded-2xl border border-neutral-200 p-6 shadow-sm">
-            <h2 class="text-sm font-semibold text-neutral-500 uppercase tracking-wide mb-1">Custom Categories</h2>
-            <p class="text-xs text-neutral-400 mb-4">Add your own categories. These will appear alongside the defaults in your expense forms.</p>
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                
+                <div class="bg-white rounded-2xl border border-neutral-200 p-6 shadow-sm flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center justify-between mb-4">
+                            <h2 class="text-sm font-bold text-neutral-800 uppercase tracking-wider">Personal Details</h2>
+                            <svg class="w-4 h-4 text-neutral-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg>
+                        </div>
+                        <form action="{{ url_for('change_email') }}" method="post" class="space-y-4">
+                            <div>
+                                <label class="block text-xs font-medium text-neutral-500 mb-1.5">Email Address</label>
+                                <input type="email" name="email" id="email" value="{{ user.email }}" required
+                                    class="w-full rounded-xl bg-neutral-50 border border-neutral-200 px-3 py-2 text-sm outline-none focus:border-black transition-all">
+                                <p id="email-status" class="text-xs mt-1.5 hidden"></p>
+                            </div>
+                            <button type="submit" id="update-email-btn"
+                                class="w-full rounded-xl bg-black text-white text-xs font-semibold px-4 py-2.5 hover:bg-neutral-800 transition-all shadow-sm">
+                                Update Email
+                            </button>
+                        </form>
+                    </div>
+                </div>
 
-            <form action="{{ url_for('add_category') }}" method="post" class="flex gap-2 mb-4">
-                <input type="text" name="category_name" placeholder="e.g. Pets, Subscriptions..."
-                    class="flex-1 rounded-xl bg-neutral-50 border border-neutral-200 px-3 py-2 text-sm outline-none focus:border-black transition-all"
-                    maxlength="50" required />
-                <button type="submit"
-                    class="rounded-lg bg-black text-white text-xs px-4 py-2 hover:bg-neutral-800 transition-colors whitespace-nowrap">
-                    Add
-                </button>
-            </form>
+                <div class="bg-white rounded-2xl border border-neutral-200 p-6 shadow-sm">
+                    <div class="flex items-center justify-between mb-4">
+                        <h2 class="text-sm font-bold text-neutral-800 uppercase tracking-wider">Password Management</h2>
+                        <svg class="w-4 h-4 text-neutral-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+                    </div>
 
-            {% if custom_cats %}
-            <ul class="space-y-2">
-                {% for cat in custom_cats %}
-                <li class="flex items-center justify-between bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-2">
-                    <span class="text-sm font-medium">{{ cat.name }}</span>
-                    <form action="{{ url_for('delete_category', cat_id=cat.id) }}" method="post"
-                        onsubmit="return confirm('Remove category \'{{ cat.name }}\'?')">
-                        <button type="submit"
-                            class="text-xs text-neutral-400 hover:text-red-500 border border-neutral-200 hover:border-red-200 px-2 py-1 rounded-lg transition-colors">
-                            Remove
+                    {% if not is_google_user %}
+                    <form action="{{ url_for('change_password') }}" method="post" class="space-y-3">
+                        <div>
+                            <label class="block text-xs font-medium text-neutral-500 mb-1.5">Current password</label>
+                            <input type="password" name="current_password" placeholder="••••••••" required
+                                class="w-full rounded-xl bg-neutral-50 border border-neutral-200 px-3 py-2 text-sm outline-none focus:border-black transition-all">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-medium text-neutral-500 mb-1.5">New password</label>
+                            <input type="password" name="new_password" id="new_password" placeholder="••••••••" required
+                                class="w-full rounded-xl bg-neutral-50 border border-neutral-200 px-3 py-2 text-sm outline-none focus:border-black transition-all">
+                            <ul id="pwd-requirements" class="mt-2.5 space-y-1 hidden">
+                                <li id="req-length" class="flex items-center gap-2 text-xs text-neutral-400"><span class="icon">✗</span> At least 8 characters</li>
+                                <li id="req-upper" class="flex items-center gap-2 text-xs text-neutral-400"><span class="icon">✗</span> At least one uppercase letter</li>
+                                <li id="req-lower" class="flex items-center gap-2 text-xs text-neutral-400"><span class="icon">✗</span> At least one lowercase letter</li>
+                                <li id="req-digit" class="flex items-center gap-2 text-xs text-neutral-400"><span class="icon">✗</span> At least one number</li>
+                                <li id="req-special" class="flex items-center gap-2 text-xs text-neutral-400"><span class="icon">✗</span> At least one special character</li>
+                            </ul>
+                        </div>
+                        <button type="submit" class="w-full rounded-xl bg-black text-white text-xs font-semibold px-4 py-2.5 hover:bg-neutral-800 transition-all shadow-sm">
+                            Update Password
                         </button>
                     </form>
-                </li>
-                {% endfor %}
-            </ul>
-            {% else %}
-            <p class="text-xs text-neutral-400 italic">No custom categories yet.</p>
-            {% endif %}
-        </div>
 
-        <div class="bg-white rounded-2xl border border-neutral-200 p-6 shadow-sm">
-            <h2 class="text-sm font-semibold text-neutral-500 uppercase tracking-wide mb-4">Account Settings</h2>
-            <form action="{{ url_for('change_email') }}" method="post" class="space-y-3">
-                <div>
-                    <label class="block text-xs font-medium text-neutral-600 mb-1">Email Address</label>
-                    <input type="email" name="email" id="email" value="{{ user.email }}" required
-                        class="w-full rounded-xl bg-neutral-50 border border-neutral-200 px-3 py-2 text-sm outline-none focus:border-black transition-all">
-                    <p id="email-status" class="text-xs mt-1 hidden"></p>
-                </div>
-                <button type="submit" id="update-email-btn"
-                    class="rounded-lg bg-black text-white text-xs px-4 py-2 hover:bg-neutral-800 transition-colors">
-                    Update Email
-                </button>
-            </form>
-        </div>
-
-        {% if not is_google_user %}
-        <div class="bg-white rounded-2xl border border-neutral-200 p-6 shadow-sm">
-            <h2 class="text-sm font-semibold text-neutral-500 uppercase tracking-wide mb-4">Change Password</h2>
-            <form action="{{ url_for('change_password') }}" method="post" class="space-y-3">
-                <div>
-                    <label class="block text-xs font-medium text-neutral-600 mb-1">Current password</label>
-                    <input type="password" name="current_password" placeholder="••••••••" required
-                        class="w-full rounded-xl bg-neutral-50 border border-neutral-200 px-3 py-2 text-sm outline-none focus:border-black transition-all">
-                </div>
-                <div>
-                    <label class="block text-xs font-medium text-neutral-600 mb-1">New password</label>
-                    <input type="password" name="new_password" id="new_password" placeholder="••••••••" required
-                        class="w-full rounded-xl bg-neutral-50 border border-neutral-200 px-3 py-2 text-sm outline-none focus:border-black transition-all">
-                    <ul id="pwd-requirements" class="mt-2 space-y-1 hidden">
-                        <li id="req-length" class="flex items-center gap-2 text-xs text-neutral-400"><span class="icon">✗</span> At least 8 characters</li>
-                        <li id="req-upper" class="flex items-center gap-2 text-xs text-neutral-400"><span class="icon">✗</span> At least one uppercase letter</li>
-                        <li id="req-lower" class="flex items-center gap-2 text-xs text-neutral-400"><span class="icon">✗</span> At least one lowercase letter</li>
-                        <li id="req-digit" class="flex items-center gap-2 text-xs text-neutral-400"><span class="icon">✗</span> At least one number</li>
-                        <li id="req-special" class="flex items-center gap-2 text-xs text-neutral-400"><span class="icon">✗</span> At least one special character</li>
-                    </ul>
-                </div>
-                <button type="submit"
-                    class="rounded-lg bg-black text-white text-xs px-4 py-2 hover:bg-neutral-800 transition-colors">
-                    Update Password
-                </button>
-            </form>
-        </div>
-
-        {% else %}
-        <div class="bg-white rounded-2xl border border-neutral-200 p-6 shadow-sm">
-            <h2 class="text-sm font-semibold text-neutral-500 uppercase tracking-wide mb-4">Set a Password</h2>
-            <p class="text-xs text-neutral-400 mb-4">You signed in with Google. You can optionally set a password to also log in with your username.</p>
-            <form action="{{ url_for('set_password') }}" method="post" class="space-y-3">
-                <div>
-                    <label class="block text-xs font-medium text-neutral-600 mb-1">New password</label>
-                    <input type="password" name="new_password" id="new_password" placeholder="••••••••" required
-                        class="w-full rounded-xl bg-neutral-50 border border-neutral-200 px-3 py-2 text-sm outline-none focus:border-black transition-all">
-                    <ul id="pwd-requirements" class="mt-2 space-y-1 hidden">
-                        <li id="req-length" class="flex items-center gap-2 text-xs text-neutral-400"><span class="icon">✗</span> At least 8 characters</li>
-                        <li id="req-upper" class="flex items-center gap-2 text-xs text-neutral-400"><span class="icon">✗</span> At least one uppercase letter</li>
-                        <li id="req-lower" class="flex items-center gap-2 text-xs text-neutral-400"><span class="icon">✗</span> At least one lowercase letter</li>
-                        <li id="req-digit" class="flex items-center gap-2 text-xs text-neutral-400"><span class="icon">✗</span> At least one number</li>
-                        <li id="req-special" class="flex items-center gap-2 text-xs text-neutral-400"><span class="icon">✗</span> At least one special character</li>
-                    </ul>
-                </div>
-                <button type="submit"
-                    class="rounded-lg bg-black text-white text-xs px-4 py-2 hover:bg-neutral-800 transition-colors">
-                    Set Password
-                </button>
-            </form>
-        </div>
-        {% endif %}
-
-        <div class="bg-white rounded-2xl border border-red-100 p-6 shadow-sm">
-            <h2 class="text-sm font-semibold text-red-400 uppercase tracking-wide mb-1">Danger Zone</h2>
-            <p class="text-xs text-neutral-400 mb-4">Deleting your account is permanent and will remove all your expenses and custom categories.</p>
-            <button onclick="document.getElementById('confirm-delete').classList.remove('hidden')"
-                class="rounded-lg bg-red-500 text-white text-xs px-4 py-2 hover:bg-red-600 transition-colors">
-                Delete Account
-            </button>
-            <div id="confirm-delete" class="hidden mt-4 p-4 bg-red-50 rounded-xl border border-red-100">
-                <p class="text-xs text-red-600 mb-3 font-medium">Are you sure? This cannot be undone.</p>
-                <div class="flex gap-2">
-                    <form action="{{ url_for('delete_account') }}" method="post">
-                        <button type="submit"
-                            class="rounded-lg bg-red-500 text-white text-xs px-4 py-2 hover:bg-red-600 transition-colors">
-                            Yes, delete my account
+                    {% else %}
+                    <p class="text-xs text-neutral-400 mb-3">You signed in with Google. You can optionally set a password to also log in with your username.</p>
+                    <form action="{{ url_for('set_password') }}" method="post" class="space-y-3">
+                        <div>
+                            <label class="block text-xs font-medium text-neutral-500 mb-1.5">New password</label>
+                            <input type="password" name="new_password" id="new_password" placeholder="••••••••" required
+                                class="w-full rounded-xl bg-neutral-50 border border-neutral-200 px-3 py-2 text-sm outline-none focus:border-black transition-all">
+                            <ul id="pwd-requirements" class="mt-2.5 space-y-1 hidden">
+                                <li id="req-length" class="flex items-center gap-2 text-xs text-neutral-400"><span class="icon">✗</span> At least 8 characters</li>
+                                <li id="req-upper" class="flex items-center gap-2 text-xs text-neutral-400"><span class="icon">✗</span> At least one uppercase letter</li>
+                                <li id="req-lower" class="flex items-center gap-2 text-xs text-neutral-400"><span class="icon">✗</span> At least one lowercase letter</li>
+                                <li id="req-digit" class="flex items-center gap-2 text-xs text-neutral-400"><span class="icon">✗</span> At least one number</li>
+                                <li id="req-special" class="flex items-center gap-2 text-xs text-neutral-400"><span class="icon">✗</span> At least one special character</li>
+                            </ul>
+                        </div>
+                        <button type="submit" class="w-full rounded-xl bg-black text-white text-xs font-semibold px-4 py-2.5 hover:bg-neutral-800 transition-all shadow-sm">
+                            Set Password
                         </button>
                     </form>
-                    <button onclick="document.getElementById('confirm-delete').classList.add('hidden')"
-                        class="rounded-lg border border-neutral-200 text-xs px-4 py-2 hover:bg-neutral-50 transition-colors">
-                        Cancel
-                    </button>
+                    {% endif %}
                 </div>
             </div>
-        </div>
 
-    </div>
+            <div class="bg-white rounded-2xl border border-neutral-200 p-6 shadow-sm">
+                <div class="flex items-center justify-between mb-1">
+                    <h2 class="text-sm font-bold text-neutral-800 uppercase tracking-wider">Custom Categories</h2>
+                    <svg class="w-4 h-4 text-neutral-400" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16"></path></svg>
+                </div>
+                <p class="text-xs text-neutral-400 mb-4">Add your own categories. These will appear alongside the defaults in your expense forms.</p>
+
+                <form action="{{ url_for('add_category') }}" method="post" class="flex gap-2 mb-4">
+                    <input type="text" name="category_name" placeholder="e.g. Pets, Subscriptions..."
+                        class="flex-1 rounded-xl bg-neutral-50 border border-neutral-200 px-3 py-2 text-sm outline-none focus:border-black transition-all"
+                        maxlength="50" required />
+                    <button type="submit"
+                        class="rounded-xl bg-black text-white text-xs font-semibold px-4 py-2 hover:bg-neutral-800 transition-all shadow-sm whitespace-nowrap">
+                        Add
+                    </button>
+                </form>
+
+                {% if custom_cats %}
+                <ul class="space-y-2">
+                    {% for cat in custom_cats %}
+                    <li class="flex items-center justify-between bg-neutral-50 border border-neutral-200 rounded-xl px-3 py-2">
+                        <span class="text-sm font-medium">{{ cat.name }}</span>
+                        <form action="{{ url_for('delete_category', cat_id=cat.id) }}" method="post"
+                            onsubmit="return confirm('Remove category \'{{ cat.name }}\'?')">
+                            <button type="submit"
+                                class="text-xs text-neutral-400 hover:text-red-500 border border-neutral-200 hover:border-red-200 px-2.5 py-1 rounded-lg transition-colors">
+                                Remove
+                            </button>
+                        </form>
+                    </li>
+                    {% endfor %}
+                </ul>
+                {% else %}
+                <p class="text-xs text-neutral-400 italic">No custom categories yet.</p>
+                {% endif %}
+            </div>
+
+            <div class="bg-white rounded-2xl border border-red-100 p-6 shadow-sm">
+                <h2 class="text-sm font-bold text-red-500 uppercase tracking-wider mb-1">Danger Zone</h2>
+                <p class="text-xs text-neutral-400 mb-4">Deleting your account is permanent and will remove all your expenses and custom categories.</p>
+                <button onclick="document.getElementById('confirm-delete').classList.remove('hidden')"
+                    class="rounded-xl bg-red-500 text-white text-xs font-semibold px-4 py-2 hover:bg-red-600 transition-all shadow-sm">
+                    Delete Account
+                </button>
+                <div id="confirm-delete" class="hidden mt-4 p-4 bg-red-50 rounded-xl border border-red-100">
+                    <p class="text-xs text-red-600 mb-3 font-medium">Are you sure? This cannot be undone.</p>
+                    <div class="flex gap-2">
+                        <form action="{{ url_for('delete_account') }}" method="post">
+                            <button type="submit"
+                                class="rounded-xl bg-red-500 text-white text-xs font-semibold px-4 py-2 hover:bg-red-600 transition-colors">
+                                Yes, delete my account
+                            </button>
+                        </form>
+                        <button onclick="document.getElementById('confirm-delete').classList.add('hidden')"
+                            class="rounded-xl border border-neutral-200 text-xs font-semibold px-4 py-2 bg-white hover:bg-neutral-50 transition-colors">
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </main>
 
     <script>
         // Password Verification Logic
@@ -221,7 +251,6 @@
         const emailInput = document.getElementById('email');
         const emailStatus = document.getElementById('email-status');
         const updateEmailBtn = document.getElementById('update-email-btn');
-        // Cache initial email value to allow re-submitting the current address cleanly
         const initialEmail = emailInput.value.trim(); 
         let emailTimer;
 
@@ -229,7 +258,6 @@
             const val = emailInput.value.trim();
             clearTimeout(emailTimer);
 
-            // If input matches original email state, clear hints and allow save
             if (val === initialEmail) {
                 emailStatus.classList.add('hidden');
                 updateEmailBtn.disabled = false;
@@ -244,7 +272,7 @@
             const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
             if (!emailRegex.test(val)) {
                 emailStatus.textContent = '✗ Enter a valid email address';
-                emailStatus.className = 'text-xs mt-1 text-neutral-400';
+                emailStatus.className = 'text-xs mt-1.5 text-neutral-400';
                 emailStatus.classList.remove('hidden');
                 updateEmailBtn.disabled = true;
                 return;
@@ -258,11 +286,11 @@
                     emailStatus.classList.remove('hidden');
                     if (data.available === true) {
                         emailStatus.textContent = '✓ This email is available';
-                        emailStatus.className = 'text-xs mt-1 text-green-500';
+                        emailStatus.className = 'text-xs mt-1.5 text-green-500';
                         updateEmailBtn.disabled = false;
                     } else if (data.available === false) {
                         emailStatus.textContent = '✗ This email is already in use';
-                        emailStatus.className = 'text-xs mt-1 text-red-500';
+                        emailStatus.className = 'text-xs mt-1.5 text-red-500';
                         updateEmailBtn.disabled = true;
                     }
                 } catch (error) {
