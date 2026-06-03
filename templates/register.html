@@ -45,8 +45,9 @@
 
                 <div>
                     <label class="block text-xs font-medium text-neutral-600 mb-1">Username</label>
-                    <input type="text" name="username" placeholder="choose_username" required
+                    <input type="text" name="username" id="username" placeholder="choose_username" required
                         class="w-full rounded-xl bg-neutral-50 border border-neutral-200 px-3 py-2 text-black outline-none focus:border-black transition-all">
+                    <p id="username-status" class="text-xs mt-1 hidden"></p>
                 </div>
 
                 <div>
@@ -119,6 +120,34 @@
                 li.classList.toggle('text-green-500', met);
                 li.classList.toggle('text-neutral-400', !met);
             });
+        });
+
+        const usernameInput = document.getElementById('username');
+        const usernameStatus = document.getElementById('username-status');
+        let debounceTimer;
+
+        usernameInput.addEventListener('input', () => {
+            const val = usernameInput.value.trim();
+            clearTimeout(debounceTimer);
+
+            if (!val) {
+                usernameStatus.classList.add('hidden');
+                return;
+            }
+
+            debounceTimer = setTimeout(async () => {
+                const res = await fetch(`/check-username?username=${encodeURIComponent(val)}`);
+                const data = await res.json();
+
+                usernameStatus.classList.remove('hidden');
+                if (data.available === true) {
+                    usernameStatus.textContent = '✓ Username is available';
+                    usernameStatus.className = 'text-xs mt-1 text-green-500';
+                } else if (data.available === false) {
+                    usernameStatus.textContent = '✗ Username is already taken';
+                    usernameStatus.className = 'text-xs mt-1 text-red-500';
+                }
+            }, 500); // waits 500ms after user stops typing before checking
         });
     </script>
 </body>

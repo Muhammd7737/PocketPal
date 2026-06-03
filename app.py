@@ -226,6 +226,16 @@ def logout():
     flash("You have been logged out.", "success")
     return redirect(url_for('login'))
 
+@app.route('/check-username')
+def check_username():
+    username = request.args.get('username', '').strip()
+
+    if not username:
+        return {'available': False}
+    
+    exists = User.query.filter_by(username=username).first()
+    return {'available': not bool(exists)}
+
 #------------ Google Login/Register/Logout/Reset Password -----------#
 # Google login
 @app.route('/login/google')
