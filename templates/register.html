@@ -52,8 +52,9 @@
 
                 <div>
                     <label class="block text-xs font-medium text-neutral-600 mb-1">Email</label>
-                    <input type="email" name="email" placeholder="you@email.com" required
+                    <input type="email" name="email" id="email" placeholder="you@email.com" required
                         class="w-full rounded-xl bg-neutral-50 border border-neutral-200 px-3 py-2 text-black outline-none focus:border-black transition-all">
+                    <p id="email-status" class="text-xs mt-1 hidden"></p>
                 </div>
 
                 <div>
@@ -61,7 +62,6 @@
                     <input type="password" name="password" id="password" placeholder="••••••••" required
                         class="w-full rounded-xl bg-neutral-50 border border-neutral-200 px-3 py-2 text-black outline-none focus:border-black transition-all">
 
-                    <!-- Password requirements checklist -->
                     <ul id="pwd-requirements" class="mt-2 space-y-1 hidden">
                         <li id="req-length" class="flex items-center gap-2 text-xs text-neutral-400">
                             <span class="icon">✗</span> At least 8 characters
@@ -122,20 +122,21 @@
             });
         });
 
+        // Checking username availability script
         const usernameInput = document.getElementById('username');
         const usernameStatus = document.getElementById('username-status');
-        let debounceTimer;
+        let usernameTimer;
 
         usernameInput.addEventListener('input', () => {
             const val = usernameInput.value.trim();
-            clearTimeout(debounceTimer);
+            clearTimeout(usernameTimer);
 
             if (!val) {
                 usernameStatus.classList.add('hidden');
                 return;
             }
 
-            debounceTimer = setTimeout(async () => {
+            usernameTimer = setTimeout(async () => {
                 const res = await fetch(`/check-username?username=${encodeURIComponent(val)}`);
                 const data = await res.json();
 
@@ -147,7 +148,49 @@
                     usernameStatus.textContent = '✗ Username is already taken';
                     usernameStatus.className = 'text-xs mt-1 text-red-500';
                 }
-            }, 500); // waits 500ms after user stops typing before checking
+            }, 500);
+        });
+
+        // Checking email availability script
+        const emailInput = document.getElementById('email');
+        const emailStatus = document.getElementById('email-status');
+        let emailTimer;
+
+        emailInput.addEventListener('input', () => {
+            const val = emailInput.value.trim();
+            clearTimeout(emailTimer);
+
+            if (!val) {
+                emailStatus.classList.add('hidden');
+                return;
+            }
+
+            // Client-side regex check so we don't query the database with incomplete email addresses
+            const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+            if (!emailRegex.test(val)) {
+                emailStatus.textContent = '✗ Enter a valid email address';
+                emailStatus.className = 'text-xs mt-1 text-neutral-400';
+                emailStatus.classList.remove('hidden');
+                return;
+            }
+
+            emailTimer = setTimeout(async () => {
+                try {
+                    const res = await fetch(`/check-email?email=${encodeURIComponent(val)}`);
+                    const data = await res.json();
+
+                    emailStatus.classList.remove('hidden');
+                    if (data.available === true) {
+                        emailStatus.textContent = '✓ Email is available';
+                        emailStatus.className = 'text-xs mt-1 text-green-500';
+                    } else if (data.available === false) {
+                        emailStatus.textContent = '✗ Email is already registered';
+                        emailStatus.className = 'text-xs mt-1 text-red-500';
+                    }
+                } catch (error) {
+                    console.error("Error checking email:", error);
+                }
+            }, 500);
         });
     </script>
 </body>
