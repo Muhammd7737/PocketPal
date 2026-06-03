@@ -100,7 +100,7 @@
 
         <div class="bg-white rounded-2xl border border-neutral-200 p-6 shadow-sm">
             <h2 class="text-sm font-semibold text-neutral-500 uppercase tracking-wide mb-4">Account Settings</h2>
-            <form action="{{ url_for('update_email') }}" method="post" class="space-y-3">
+            <form action="{{ url_for('change_email') }}" method="post" class="space-y-3">
                 <div>
                     <label class="block text-xs font-medium text-neutral-600 mb-1">Email Address</label>
                     <input type="email" name="email" id="email" value="{{ user.email }}" required

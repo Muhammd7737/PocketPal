@@ -226,6 +226,7 @@ def logout():
     flash("You have been logged out.", "success")
     return redirect(url_for('login'))
 
+#-------------AJAX Endpoints for Real-Time Validation----------------
 @app.route('/check-username')
 def check_username():
     username = request.args.get('username', '').strip()
@@ -234,6 +235,16 @@ def check_username():
         return {'available': False}
     
     exists = User.query.filter_by(username=username).first()
+    return {'available': not bool(exists)}
+
+@app.route('/check-email')
+def check_email():
+    email = request.args.get('email', '').strip()
+
+    if not email:
+        return {'available': False}
+    
+    exists = User.query.filter_by(email=email).first()
     return {'available': not bool(exists)}
 
 #------------ Google Login/Register/Logout/Reset Password -----------#
