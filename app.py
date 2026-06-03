@@ -169,26 +169,38 @@ def login():
 @app.route('/register', methods=['GET', 'POST'])
 def register():
     if request.method == 'POST':
-        username = request.form['username']
+        username = request.form['username'].strip()
         password = request.form['password']
+        email = request.form['email'].strip()
 
-        # Validate first
+        # Validate Password first before checking if user exists to save resources
         error = validate_password(password)
         if error:
             flash(error, 'error')
             return render_template('register.html')
+        
+        # User Required to give an email
+        if not email:
+            flash('Email is required for registration.', 'error')
+            return render_template('register.html')
+        
+        # Check if the username is already taken in the system
+        if User.query.filter_by(username=username).first():
+            flash('Username is already taken.', 'error')
+            return render_template('register.html')
+        
+        # Check if the email is already registered in the system
+        if User.query.filter_by(email=email).first():
+            flash('An account with that email already exists.', 'error')
+            return render_template('register.html')
 
-        # Then check if user exists
-        exists = User.query.filter_by(username=username).first()
-        if exists:
-            flash('Account already exists!', 'error')
-        else:
-            hashed_password = generate_password_hash(password)
-            new_user = User(username=username, password=hashed_password)
-            db.session.add(new_user)
-            db.session.commit()
-            flash('You have successfully registered!', 'success')
-            return redirect(url_for('login'))
+
+        hashed_password = generate_password_hash(password)
+        new_user = User(username=username, password=hashed_password)
+        db.session.add(new_user)
+        db.session.commit()
+        flash('You have successfully registered!', 'success')
+        return redirect(url_for('login'))
 
     return render_template('register.html')
 
@@ -205,8 +217,6 @@ def validate_password(password):
         return 'Password must contain at least one special character.'
     return None  
 
-
-
 @app.route('/logout')
 def logout():
     session.pop('loggedin', None)
@@ -215,7 +225,6 @@ def logout():
     session.clear()
     flash("You have been logged out.", "success")
     return redirect(url_for('login'))
-
 
 #------------ Google Login/Register/Logout/Reset Password -----------#
 # Google login

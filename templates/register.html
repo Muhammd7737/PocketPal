@@ -1,11 +1,13 @@
 <!DOCTYPE html>
 <html lang="en" class="h-full bg-white">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Register · PocketPal</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
+
 <body class="h-full flex items-center justify-center text-[#37352f] px-4">
     <div class="w-full max-w-sm">
         <div class="text-center mb-8">
@@ -20,7 +22,7 @@
                     <span class="bg-white px-2">or</span>
                 </div>
             </div>
-            
+
             <a href="{{ url_for('google_login') }}"
                 class="flex items-center justify-center gap-2 w-full rounded-xl border border-neutral-200 bg-white px-4 py-2 text-sm font-medium hover:bg-neutral-50 transition-colors">
                 <img src="https://www.svgrepo.com/show/475656/google-color.svg" class="w-4 h-4">
@@ -31,45 +33,45 @@
         <div class="rounded-2xl border border-neutral-200 bg-white p-6 shadow-sm">
             <form action="{{ url_for('register') }}" method="post" class="space-y-4">
                 {% with messages = get_flashed_messages(with_categories=true) %}
-                  {% if messages %}
-                    {% for category, message in messages %}
-                      <div class="text-xs p-3 rounded-xl {% if category == 'error' %}bg-red-50 text-red-600 border-red-100{% else %}bg-green-50 text-green-600 border-green-100{% endif %} border">
-                        {{ message }}
-                      </div>
-                    {% endfor %}
-                  {% endif %}
+                {% if messages %}
+                {% for category, message in messages %}
+                <div
+                    class="text-xs p-3 rounded-xl {% if category == 'error' %}bg-red-50 text-red-600 border-red-100{% else %}bg-green-50 text-green-600 border-green-100{% endif %} border">
+                    {{ message }}
+                </div>
+                {% endfor %}
+                {% endif %}
                 {% endwith %}
 
                 <div>
                     <label class="block text-xs font-medium text-neutral-600 mb-1">Username</label>
                     <input type="text" name="username" placeholder="choose_username" required
-                           class="w-full rounded-xl bg-neutral-50 border border-neutral-200 px-3 py-2 text-black outline-none focus:border-black transition-all">
+                        class="w-full rounded-xl bg-neutral-50 border border-neutral-200 px-3 py-2 text-black outline-none focus:border-black transition-all">
                 </div>
 
                 <div>
-                    <label class="block text-xs font-medium text-neutral-600 mb-1">Email <span class="text-neutral-400">(optional —
-                            needed for password reset)</span></label>
-                    <input type="email" name="email" placeholder="you@email.com"
+                    <label class="block text-xs font-medium text-neutral-600 mb-1">Email</label>
+                    <input type="email" name="email" placeholder="you@email.com" required
                         class="w-full rounded-xl bg-neutral-50 border border-neutral-200 px-3 py-2 text-black outline-none focus:border-black transition-all">
                 </div>
 
                 <div>
                     <label class="block text-xs font-medium text-neutral-600 mb-1">Password</label>
                     <input type="password" name="password" id="password" placeholder="••••••••" required
-                           class="w-full rounded-xl bg-neutral-50 border border-neutral-200 px-3 py-2 text-black outline-none focus:border-black transition-all">
+                        class="w-full rounded-xl bg-neutral-50 border border-neutral-200 px-3 py-2 text-black outline-none focus:border-black transition-all">
 
                     <!-- Password requirements checklist -->
                     <ul id="pwd-requirements" class="mt-2 space-y-1 hidden">
-                        <li id="req-length"  class="flex items-center gap-2 text-xs text-neutral-400">
+                        <li id="req-length" class="flex items-center gap-2 text-xs text-neutral-400">
                             <span class="icon">✗</span> At least 8 characters
                         </li>
-                        <li id="req-upper"   class="flex items-center gap-2 text-xs text-neutral-400">
+                        <li id="req-upper" class="flex items-center gap-2 text-xs text-neutral-400">
                             <span class="icon">✗</span> At least one uppercase letter
                         </li>
-                        <li id="req-lower"   class="flex items-center gap-2 text-xs text-neutral-400">
+                        <li id="req-lower" class="flex items-center gap-2 text-xs text-neutral-400">
                             <span class="icon">✗</span> At least one lowercase letter
                         </li>
-                        <li id="req-digit"   class="flex items-center gap-2 text-xs text-neutral-400">
+                        <li id="req-digit" class="flex items-center gap-2 text-xs text-neutral-400">
                             <span class="icon">✗</span> At least one number
                         </li>
                         <li id="req-special" class="flex items-center gap-2 text-xs text-neutral-400">
@@ -77,15 +79,15 @@
                         </li>
                     </ul>
                 </div>
-                
-                <button type="submit" 
-                        class="w-full rounded-xl bg-black text-white px-4 py-2 hover:bg-neutral-800 transition-colors font-semibold mt-2">
+
+                <button type="submit"
+                    class="w-full rounded-xl bg-black text-white px-4 py-2 hover:bg-neutral-800 transition-colors font-semibold mt-2">
                     Create Account
                 </button>
             </form>
 
             <div class="mt-6 text-center text-sm text-neutral-500">
-                Already have an account? 
+                Already have an account?
                 <a href="{{ url_for('login') }}" class="text-black font-medium hover:underline">Login here</a>
             </div>
         </div>
@@ -96,10 +98,10 @@
         const requirementsList = document.getElementById('pwd-requirements');
 
         const requirements = [
-            { id: 'req-length',  test: p => p.length >= 8 },
-            { id: 'req-upper',   test: p => /[A-Z]/.test(p) },
-            { id: 'req-lower',   test: p => /[a-z]/.test(p) },
-            { id: 'req-digit',   test: p => /[0-9]/.test(p) },
+            { id: 'req-length', test: p => p.length >= 8 },
+            { id: 'req-upper', test: p => /[A-Z]/.test(p) },
+            { id: 'req-lower', test: p => /[a-z]/.test(p) },
+            { id: 'req-digit', test: p => /[0-9]/.test(p) },
             { id: 'req-special', test: p => /[!@#$%^&*()_+\-=\[\]{}|;:,.<>?]/.test(p) },
         ];
 
@@ -110,9 +112,9 @@
         passwordInput.addEventListener('input', () => {
             const val = passwordInput.value;
             requirements.forEach(({ id, test }) => {
-                const li   = document.getElementById(id);
+                const li = document.getElementById(id);
                 const icon = li.querySelector('.icon');
-                const met  = test(val);
+                const met = test(val);
                 icon.textContent = met ? '✓' : '✗';
                 li.classList.toggle('text-green-500', met);
                 li.classList.toggle('text-neutral-400', !met);
@@ -120,4 +122,5 @@
         });
     </script>
 </body>
+
 </html>
