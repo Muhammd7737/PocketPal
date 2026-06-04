@@ -109,9 +109,13 @@
 
       <!-- Card 2: Monthly Average Cost -->
       <div class="rounded-2xl bg-neutral-50 border border-neutral-200 px-5 py-4">
-        <p class="text-xs text-neutral-500 mb-1">Monthly average</p>
-        <p class="text-2xl font-semibold text-black">${{ '%.2f'|format(monthly_avg or 0) }}</p>
-        <p class="text-xs text-neutral-400 mt-1">Across all months</p>
+        <p class="text-xs text-neutral-500 mb-1">This month</p>
+        <p class="text-2xl font-semibold text-black">${{ '%.2f'|format(current_month_total or 0) }}</p>
+        {% if monthly_avg != current_month_total %}
+        <p class="text-xs text-neutral-400 mt-1">Avg/month: ${{ '%.2f'|format(monthly_avg or 0) }}</p>
+        {% else %}
+        <p class="text-xs text-neutral-400 mt-1">First month of tracking</p>
+        {% endif %}
       </div>
 
       <!-- Card 3: Top Spending Category -->
