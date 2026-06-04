@@ -588,7 +588,7 @@ def index():
   monthly_totals = defaultdict(float)
   for e in all_expenses:
      monthly_totals[(e.date.year, e.date.month)] += e.amount
-  monthly_avg = round(sum(monthly_totals.values()) / len(monthly_totals), 2) if len(monthly_totals) > 1 else None
+  monthly_avg = round(sum(monthly_totals.values()) / len(monthly_totals), 2) if len(monthly_totals) > 0 else 0.00
 
   # top category for the spending
   category_tot = defaultdict(float)
