@@ -182,7 +182,7 @@ Deno.serve(async (req) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from:    "PocketPal <reports@yourdomain.com>",  // ← swap your verified domain
+        from:    "PocketPal <onboarding@resend.dev>",  // ← swap your verified domain
         to:      user.email,
         subject: `💸 PocketPal — Your ${MONTH_NAMES[month]} ${year} Report`,
         html,
