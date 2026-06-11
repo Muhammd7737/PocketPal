@@ -49,7 +49,7 @@ app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_USERNAME', '')
 app.config['GOOGLE_CLIENT_ID'] = os.getenv('GOOGLE_CLIENT_ID')
 app.config['GOOGLE_CLIENT_SECRET'] = os.getenv('GOOGLE_CLIENT_SECRET')
 
-app.config['TABSCANNER_KEY'] = os.getenv('TABSCANNER_API_KEY')
+#app.config['TABSCANNER_KEY'] = os.getenv('TABSCANNER_API_KEY')
 
 
 db = SQLAlchemy(app)
@@ -965,17 +965,20 @@ def scan_receipt():
             data={'documentType': 'receipt'},
             timeout=15
         )
+        print(f"Tabscanner response status: {response.status_code}")
+        print(f"Tabscanner response body: {response.text}")
+
         if response.status_code != 200:
-            flash('Could not process receipt. Try again.', 'error')
+            flash(f'Could not process receipt. Status: {response.status_code} — {response.text}', 'error')
             return redirect(url_for('index'))
 
         token = response.json().get('token')
         if not token:
-            flash('Could not process receipt. Try again.', 'error')
+            flash(f'No token returned from Tabscanner. Response: {response.text}', 'error')
             return redirect(url_for('index'))
     except Exception as e:
         print(f"Tabscanner error: {e}")
-        flash('Receipt scanning failed. Try again.', 'error')
+        flash(f'Receipt scanning failed: {str(e)}', 'error')
         return redirect(url_for('index'))
 
     # Step 2 — poll for result
@@ -995,7 +998,8 @@ def scan_receipt():
             time.sleep(1)
         except Exception as e:
             print(f"Tabscanner poll error: {e}")
-            break
+            flash(f'Receipt processing failed: {str(e)}', 'error')
+            return redirect(url_for('index'))
 
     if not result_data:
         flash('Receipt processing timed out. Try again.', 'error')
