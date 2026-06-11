@@ -23,6 +23,10 @@ from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, 
 from reportlab.lib.styles import getSampleStyleSheet
 from flask import Response
 
+#------------import for AI reciept scanner----------------#
+import requests
+import time
+
 app = Flask(__name__)
 
 load_dotenv('a.env')
@@ -44,6 +48,9 @@ app.config['MAIL_DEFAULT_SENDER'] = os.environ.get('MAIL_USERNAME', '')
 
 app.config['GOOGLE_CLIENT_ID'] = os.getenv('GOOGLE_CLIENT_ID')
 app.config['GOOGLE_CLIENT_SECRET'] = os.getenv('GOOGLE_CLIENT_SECRET')
+
+app.config['TABSCANNER_KEY'] = os.getenv('TABSCANNER_API_KEY')
+
 
 db = SQLAlchemy(app)
 
@@ -936,6 +943,134 @@ def download_pdf():
         headers={'Content-Disposition': f'attachment; filename={filename}'}
     )
 
+#---------------------------AI Reciept Scanner-------------------------------#
+TABSCANNER_KEY = os.getenv('TABSCANNER_API_KEY')
+
+@app.route('/scan-receipt', methods=['POST'])
+def scan_receipt():
+    if 'loggedin' not in session:
+        return redirect(url_for('login'))
+
+    file = request.files.get('receipt')
+    if not file or not file.filename:
+        flash('Please upload a receipt image.', 'error')
+        return redirect(url_for('index'))
+
+    # Step 1 — send to Tabscanner
+    try:
+        response = requests.post(
+            'https://api.tabscanner.com/api/2/process',
+            headers={'apikey': TABSCANNER_KEY},
+            files={'file': (file.filename, file.read(), file.content_type)},
+            data={'documentType': 'receipt'},
+            timeout=15
+        )
+        if response.status_code != 200:
+            flash('Could not process receipt. Try again.', 'error')
+            return redirect(url_for('index'))
+
+        token = response.json().get('token')
+        if not token:
+            flash('Could not process receipt. Try again.', 'error')
+            return redirect(url_for('index'))
+    except Exception as e:
+        print(f"Tabscanner error: {e}")
+        flash('Receipt scanning failed. Try again.', 'error')
+        return redirect(url_for('index'))
+
+    # Step 2 — poll for result
+    time.sleep(4)
+    result_data = None
+    for _ in range(10):
+        try:
+            result = requests.get(
+                f'https://api.tabscanner.com/api/result/{token}',
+                headers={'apikey': TABSCANNER_KEY},
+                timeout=10
+            )
+            data = result.json()
+            if data.get('status') == 'done':
+                result_data = data.get('result', {})
+                break
+            time.sleep(1)
+        except Exception as e:
+            print(f"Tabscanner poll error: {e}")
+            break
+
+    if not result_data:
+        flash('Receipt processing timed out. Try again.', 'error')
+        return redirect(url_for('index'))
+
+    # Step 3 — extract data
+    description = result_data.get('establishment', '') or 'Receipt'
+    amount = result_data.get('total', '') or ''
+    date_raw = result_data.get('date', '')
+
+    receipt_date = date.today().isoformat()
+    if date_raw:
+        for fmt in ["%Y-%m-%d", "%m/%d/%Y", "%d/%m/%Y", "%d-%m-%Y"]:
+            try:
+                receipt_date = datetime.strptime(date_raw[:10], fmt).date().isoformat()
+                break
+            except:
+                continue
+
+    # Step 4 — check for duplicate
+    duplicate = None
+    if amount:
+        try:
+            amount_float = float(amount)
+            existing = Expense.query.filter(
+                Expense.user_id == session['id'],
+                Expense.amount.between(amount_float * 0.95, amount_float * 1.05),
+                Expense.date == datetime.strptime(receipt_date, "%Y-%m-%d").date()
+            ).first()
+            if existing:
+                duplicate = {
+                    'description': existing.description,
+                    'amount': existing.amount,
+                    'date': existing.date.strftime("%Y-%m-%d"),
+                    'category': existing.category
+                }
+        except Exception as e:
+            print(f"Duplicate check error: {e}")
+
+    # Guess category from merchant name
+    suggested_category = guess_category(description)
+    categories = get_user_categories(session['id'])
+
+    return render_template('receipt_preview.html',
+        description=description,
+        amount=amount,
+        receipt_date=receipt_date,
+        categories=categories,
+        suggested_category=suggested_category,
+        current_user_pic=User.query.get(session['id']).profile_pic,
+        duplicate=duplicate
+    )
+
+
+def guess_category(establishment):
+    name = (establishment or '').lower()
+    if any(w in name for w in ['mcdonald', 'pizza', 'burger', 'kfc', 'restaurant', 'cafe', 'coffee', 'subway', 'sushi', 'kitchen', 'grill', 'bakery', 'taco', 'dining', 'bistro', 'diner']):
+        return 'Food & Dining'
+    if any(w in name for w in ['walmart', 'costco', 'grocery', 'supermarket', 'safeway', 'loblaws', 'sobeys', 'metro', 'fresh']):
+        return 'Groceries'
+    if any(w in name for w in ['uber', 'lyft', 'taxi', 'gas', 'shell', 'petro', 'transport', 'bus', 'transit', 'parking', 'esso', 'chevron']):
+        return 'Transport'
+    if any(w in name for w in ['pharmacy', 'clinic', 'hospital', 'doctor', 'health', 'dental', 'medical', 'drug', 'shoppers']):
+        return 'Health & Medical'
+    if any(w in name for w in ['hydro', 'electric', 'water', 'internet', 'bell', 'rogers', 'telus', 'utility', 'power']):
+        return 'Utilities'
+    if any(w in name for w in ['netflix', 'spotify', 'apple', 'google', 'amazon', 'subscription', 'adobe']):
+        return 'Entertainment'
+    if any(w in name for w in ['hotel', 'airbnb', 'flight', 'airline', 'travel', 'booking', 'expedia']):
+        return 'Travel'
+    if any(w in name for w in ['rent', 'apartment', 'landlord', 'housing', 'lease']):
+        return 'Rent'
+    if any(w in name for w in ['zara', 'h&m', 'nike', 'adidas', 'mall', 'store', 'shop', 'fashion']):
+        return 'Shopping'
+    return 'Miscellaneous'
 #-----------------------------Analytics----------------------------------------
 @app.route("/analytics")
 def analytics():
