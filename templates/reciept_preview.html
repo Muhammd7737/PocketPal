@@ -52,6 +52,12 @@
 
         <div class="bg-white rounded-2xl border border-neutral-200 p-6 shadow-sm">
             <h2 class="text-lg font-semibold mb-1">Receipt Scanned</h2>
+            <!-- DEBUG - remove after fixing -->
+            <div class="mb-4 p-3 bg-gray-100 rounded-xl text-xs font-mono">
+                <p>description: {{ description }}</p>
+                <p>amount: {{ amount }}</p>
+                <p>date: {{ receipt_date }}</p>
+            </div>
             <p class="text-xs text-neutral-400 mb-6">Review and edit the details before adding.</p>
 
             <form method="post" action="{{ url_for('add') }}" class="space-y-4">
