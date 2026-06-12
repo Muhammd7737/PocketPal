@@ -961,6 +961,7 @@ def scan_receipt():
         response = requests.post(
             'https://api.tabscanner.com/api/2/process',
             headers={'apikey': TABSCANNER_KEY},
+            files={'file': (file.filename, file.read(), 'image/jpeg')},
             files={'file': (file.filename, file.read(), file.content_type)},
             data={'documentType': 'receipt'},
             timeout=15
