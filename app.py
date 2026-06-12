@@ -975,7 +975,7 @@ def scan_receipt():
 
         token = response.json().get('token')
         if not token:
-            flash(f'No token returned from Tabscanner. Response: {response.text}', 'error')
+            flash(f'Could not read receipt. Please upload a clear JPG or PNG image.', 'error')
             return redirect(url_for('index'))
     except Exception as e:
         print(f"Tabscanner error: {e}")
