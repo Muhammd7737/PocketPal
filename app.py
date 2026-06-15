@@ -13,6 +13,7 @@ from werkzeug.security import generate_password_hash, check_password_hash
 from itsdangerous import URLSafeTimedSerializer
 import os
 import base64 
+import resend
 
 #-----------imports for Expense Download--------------#
 import csv
@@ -295,6 +296,7 @@ def google_callback():
     return redirect(url_for('index'))
 
 # Forgot password
+resend.api_key = os.getenv('RESEND_API_KEY')
 @app.route('/forgot-password', methods=['GET', 'POST'])
 def forgot_password():
     if request.method == 'POST':
@@ -306,9 +308,19 @@ def forgot_password():
                 return redirect(url_for('login'))
             token     = serialiser.dumps(email, salt='password-reset')
             reset_url = url_for('reset_password', token=token, _external=True)
-            msg = Message('Reset your password', recipients=[email])
-            msg.body = f'Click to reset your password: {reset_url}\n\nExpires in 1 hour.'
-            mail.send(msg)
+            resend.Emails.send({
+                "from": "PocketPal <onboarding@resend.dev>",
+                "to": [email],
+                "subject": "Reset your PocketPal password",
+                "html": f"""
+                    <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">
+                        <h2>Reset your password</h2>
+                        <p>Click the button below to reset your PocketPal password. This link expires in 1 hour.</p>
+                        <a href="{reset_url}" style="display: inline-block; background: #000; color: #fff; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: bold;">Reset Password</a>
+                        <p style="color: #999; font-size: 12px; margin-top: 24px;">If you didn't request this, ignore this email.</p>
+                    </div>
+                """
+            })
         flash('If that email is registered, a reset link has been sent.', 'success')
         return redirect(url_for('login'))
     return render_template('forgot_password.html')
