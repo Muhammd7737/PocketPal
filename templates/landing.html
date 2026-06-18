@@ -1,26 +1,32 @@
 <!DOCTYPE html>
 <html lang="en" class="h-full bg-white">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>PocketPal — Know where it goes.</title>
-<script src="https://cdn.tailwindcss.com"></script>
-<script>
-  tailwind.config = {
-    theme: { extend: { colors: { brand: { DEFAULT: "#000000" } } } },
-  };
-</script>
-<style>
-  html{scroll-behavior:smooth;}
-  details > summary { list-style: none; cursor:pointer; }
-  details > summary::-webkit-details-marker{ display:none; }
-  details[open] .chev{ transform: rotate(45deg); }
-  .chev{ transition: transform .2s ease; }
-  .bar-fill{ transition: width .6s ease; }
-  @keyframes riseIn{ from{ opacity:0; transform: translateY(18px); } to{ opacity:1; transform: translateY(0); } }
-  .rise{ animation: riseIn .7s ease-out both; }
-  @media (prefers-reduced-motion: reduce){ .rise{ animation:none; } }
-</style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PocketPal — Know where it goes.</title>
+
+  <meta property="og:title" content="PocketPal — Know where it goes." />
+  <meta property="og:description" content="Track money smarter, spend with a plan. PocketPal reads your receipts, tracks budgets, and maps out your monthly spending automatically." />
+  <meta property="og:url" content="https://pocketpal-yaj9.onrender.com" />
+  <meta property="og:type" content="website" />
+
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: { extend: { colors: { brand: { DEFAULT: "#000000" } } } },
+    };
+  </script>
+  <style>
+    html{scroll-behavior:smooth;}
+    details > summary { list-style: none; cursor:pointer; }
+    details > summary::-webkit-details-marker{ display:none; }
+    details[open] .chev{ transform: rotate(45deg); }
+    .chev{ transition: transform .2s ease; }
+    .bar-fill{ transition: width .6s ease; }
+    @keyframes riseIn{ from{ opacity:0; transform: translateY(18px); } to{ opacity:1; transform: translateY(0); } }
+    .rise{ animation: riseIn .7s ease-out both; }
+    @media (prefers-reduced-motion: reduce){ .rise{ animation:none; } }
+  </style>
 </head>
 <body class="h-full bg-white text-[#37352f]">
 
