@@ -584,7 +584,8 @@ def delete_recurring(bill_id):
 def index():
 
   if 'loggedin' not in session:
-    return redirect(url_for('login'))
+    return render_template('landing.html')
+    #return redirect(url_for('login'))
   
   try:
     db.session.execute(db.text("SELECT process_recurring_bills()"))
