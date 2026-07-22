@@ -751,10 +751,10 @@ def add():
  
   try:
     amount = float(amount_str)
-    if amount <= 0:
+    if amount == 0:
       raise ValueError
   except ValueError:
-    flash("Amount must be a positive number", "error")
+    flash("Amount cannot be zero", "error")
     return redirect(url_for("index"))
  
   try:
@@ -806,10 +806,10 @@ def edit_expense(expense_id):
 
     try:
         amount = float(amount_str)
-        if amount <= 0:
+        if amount == 0:
             raise ValueError
     except ValueError:
-        flash('Amount must be a positive number.', 'error')
+        flash('Amount cannot be zero.', 'error')
         return redirect(url_for('index'))
 
     try:
@@ -1038,6 +1038,8 @@ def scan_receipt():
     if amount:
         try:
             amount_float = float(amount)
+            low = min(amount_float * 0.95, amount_float * 1.05)
+            high = max(amount_float * 0.95, amount_float * 1.05)
             existing = Expense.query.filter(
                 Expense.user_id == session['id'],
                 Expense.amount.between(amount_float * 0.95, amount_float * 1.05),

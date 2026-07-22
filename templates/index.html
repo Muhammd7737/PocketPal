@@ -2,9 +2,7 @@
 <html lang="en" class="h-full bg-white">
 
 <head>
-  <!-- ==========================================
-       SITE METADATA & STYLESHEETS
-       ========================================== -->
+
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Dashboard · PocketPal</title>
@@ -20,9 +18,7 @@
 
 <body class="h-full bg-white text-[#37352f]">
 
-  <!-- ==========================================
-       GLOBAL NAVIGATION BAR
-       ========================================== -->
+
   <nav class="border-b border-neutral-100 py-4 bg-white/80 backdrop-blur-md sticky top-0 z-50">
     <div class="mx-auto max-w-6xl px-4 flex justify-between items-center">
 
@@ -70,9 +66,7 @@
     </div>
   </nav>
 
-  <!-- ==========================================
-       FLASH MESSAGES (Success / Error Alerts)
-       ========================================== -->
+ 
   <div class="mx-auto max-w-6xl px-4 mt-4">
     {% with messages = get_flashed_messages(with_categories=true) %}
     {% if messages %}
@@ -86,18 +80,14 @@
     {% endwith %}
   </div>
 
-  <!-- ==========================================
-       MAIN CONTENT CONTAINER
-       ========================================== -->
+
   <main class="mx-auto max-w-6xl px-4 py-8">
 
     <!-- Dashboard Header Titles -->
     <h1 class="text-3xl font-semibold mb-2">Dashboard</h1>
     <p class="text-neutral-500 mb-6">Track spending, filter by date/category, and manage records.</p>
 
-    <!-- ==========================================
-         TOP METRICS / STATS CARDS
-         ========================================== -->
+
     <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
 
       <!-- Card 1: Total Spending Balance -->
@@ -128,9 +118,6 @@
       </div>
     </div>
 
-    <!-- ==========================================
-         MONTHLY BUDGET LIMIT TRACKER PANEL
-         ========================================== -->
     <div class="rounded-2xl border border-neutral-200 bg-white p-5 mb-6 shadow-sm">
       <div class="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
 
@@ -188,9 +175,7 @@
       {% endif %}
     </div>
 
-    <!-- ==========================================
-         FILTERS AND MANAGEMENT INTERFACES (Grid layout)
-         ========================================== -->
+
     <div class="grid grid-cols-1 lg:grid-cols-3 gap-4">
 
       <!-- SUBSECTION: FILTERS LOGIC CONTROL PANEL -->
@@ -238,8 +223,8 @@
         <div class="mt-4 text-sm text-neutral-500">
           <span class="mr-2">Total:</span>
           <span
-            class="inline-block rounded-xl border border-neutral-200 bg-neutral-50 px-3 py-1 font-semibold text-black">
-            ${{ '%.2f'|format(total or 0) }}
+            class="inline-block rounded-xl border border-neutral-200 bg-neutral-50 px-3 py-1 font-semibold {% if total and total < 0 %}text-green-600{% else %}text-black{% endif %}">
+            {% if total and total < 0 %}-${{ '%.2f'|format(total|abs) }}{% else %}${{ '%.2f'|format(total or 0) }}{% endif %}
           </span>
         </div>
       </section>
@@ -255,11 +240,12 @@
 
           <!-- Numeric Cost Amount & Calendar Input Row -->
           <div class="grid grid-cols-2 gap-3">
-            <input name="amount" type="number" step="0.01" placeholder="Amount"
+            <input name="amount" type="number" step="0.01" placeholder="Amount (use − for refund)"
               class="w-full rounded-xl bg-neutral-50 border border-neutral-200 px-3 py-2 text-black outline-none focus:border-black" />
             <input name="date" value="{{today}}" type="date"
               class="w-full rounded-xl bg-neutral-50 border border-neutral-200 px-3 py-2 text-black outline-none focus:border-black" />
           </div>
+          <p class="text-xs text-neutral-400 -mt-2">Tip: enter a negative amount (e.g. -25.00) to log a refund or credit.</p>
 
           <!-- Standard Predefined Dropdown Menu -->
           <select name="category" id="category-select" onchange="toggleCustomCategory(this)"
@@ -306,9 +292,7 @@
       </section>
     </div>
 
-    <!-- ==========================================
-         RECURRING BILLS LOG INTERFACE SECTION
-         ========================================== -->
+
     <section class="mt-8 rounded-2xl border border-neutral-200 bg-white shadow-sm overflow-hidden">
       <div class="px-4 py-3 border-b border-neutral-100">
         <h2 class="text-lg font-semibold">Recurring Bills</h2>
@@ -388,9 +372,6 @@
       </div>
     </section>
 
-    <!-- ==========================================
-         PRIMARY EXPENSES LOG HISTORY DATA TABLE
-         ========================================== -->
     <section class="mt-8 rounded-2xl border border-neutral-200 bg-white shadow-sm overflow-hidden">
 
       <!-- Table Header & Export Modal Trigger -->
@@ -463,7 +444,14 @@
                   <span class="px-2 py-1 bg-neutral-100 rounded-md text-xs font-medium">{{ e.category }}</span>
                 </td>
                 <td class="px-4 py-3 text-sm text-neutral-400">{{ e.notes or '' }}</td>
-                <td class="px-4 py-3 text-right font-semibold">${{ '%.2f'|format(e.amount) }}</td>
+                <td class="px-4 py-3 text-right font-semibold {% if e.amount < 0 %}text-green-600{% else %}text-black{% endif %}">
+                  {% if e.amount < 0 %}
+                  <span class="inline-block mr-1 text-xs bg-green-50 text-green-700 px-2 py-0.5 rounded-md align-middle">Refund</span>
+                  -${{ '%.2f'|format(e.amount|abs) }}
+                  {% else %}
+                  ${{ '%.2f'|format(e.amount) }}
+                  {% endif %}
+                </td>
                 <td class="px-4 py-3 text-right">
                   <div class="flex gap-2 justify-end">
                     <a href="{{ url_for('index', edit_id=e.id) }}"
@@ -497,9 +485,6 @@
 
   </main>
 
-  <!-- ==========================================
-       JAVASCRIPT INTERACTION SCRIPTS BLOCK
-       ========================================== -->
   <script>
     // PROFILE NAVIGATION MENU DROPDOWN INTERACTIVES
     // Closes the navbar profile menu dropdown if the user registers clicks outside the bounding box
@@ -579,9 +564,6 @@
     }
   </script>
 
-  <!-- ==========================================
-       ASYNC MODAL INJECTION TARGET ANCHOR CONTAINER
-       ========================================== -->
   <div id="modal-container"></div>
 
 </body>
