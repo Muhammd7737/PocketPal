@@ -35,6 +35,9 @@ from groq import Groq
 
 app = Flask(__name__)
 
+# this is to configure session cookies for the cross domain requests
+app.config['SESSION_COOKIE_SAMESITE'] = 'None'
+app.config['SESSION_COOKIE_SECURE'] = True
 CORS(app, supports_credentials=True, origins=["https://ask-ai-assitant.onrender.com"])
 client = Groq(api_key=os.getenv('GROQ_API_KEY')) # api key for the ai assitant
 
