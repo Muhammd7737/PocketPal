@@ -5,6 +5,7 @@ from flask_login import current_user
 from flask_sqlalchemy import SQLAlchemy
 from datetime import date, datetime
 from sqlalchemy import func
+from flask import jsonify
 
 #-----------imports for login--------------#
 from flask_mail import Mail, Message
@@ -28,7 +29,14 @@ from flask import Response
 import requests
 import time
 
+#----- Ai Assitant -------------
+from flask_cors import CORS
+from groq import Groq
+
 app = Flask(__name__)
+
+CORS(app, supports_credentials=True, origins=["http://localhost:5173"])
+client = Groq(api_key=os.getenv('GROQ_API_KEY')) # api key for the ai assitant
 
 load_dotenv('a.env')
 
@@ -1123,6 +1131,41 @@ def analytics():
         daily_totals=daily_totals,
         current_user_pic=user.profile_pic
     )
+
+
+#--------------Ai Assistant-------------------
+@app.route('/ask', methods=['POST'])
+def ask():
+    if 'loggedin' not in session:
+        return jsonify({'answer': 'Please log in to PocketPal first, then try again.'}), 401
+
+    data = request.get_json()
+    question = data.get('question', '')
+
+    expenses = Expense.query.filter_by(user_id=session['id']) \
+        .order_by(Expense.date.desc()).limit(50).all()
+
+    if not expenses:
+        expense_summary = "No expenses recorded yet."
+    else:
+        lines = [f"{e.date} | {e.category} | ${e.amount:.2f} | {e.description}" for e in expenses]
+        expense_summary = "\n".join(lines)
+
+    prompt = f"""Here is the user's recent expense data:
+
+{expense_summary}
+
+Based only on this data, answer the user's question: {question}"""
+
+    response = client.chat.completions.create(
+        model="llama-3.3-70b-versatile",
+        messages=[{"role": "user", "content": prompt}],
+        max_tokens=500
+    )
+
+    answer = response.choices[0].message.content
+
+    return jsonify({'answer': answer})
 
 if __name__ == "__main__":
   #app.run(debug=True, port=2030)
