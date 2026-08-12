@@ -26,3 +26,4 @@ python-dotenv==1.0.1
 psycopg2-binary==2.9.12
 resend==2.30.1
 groq
+flask-cors
