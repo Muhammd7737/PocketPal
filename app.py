@@ -35,7 +35,7 @@ from groq import Groq
 
 app = Flask(__name__)
 
-CORS(app, supports_credentials=True, origins=["http://localhost:5173"])
+CORS(app, supports_credentials=True, origins=["https://ask-ai-assitant.onrender.com"])
 client = Groq(api_key=os.getenv('GROQ_API_KEY')) # api key for the ai assitant
 
 load_dotenv('a.env')
