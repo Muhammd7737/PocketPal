@@ -1145,29 +1145,70 @@ def ask():
     data = request.get_json()
     question = data.get('question', '')
 
-    expenses = Expense.query.filter_by(user_id=session['id']) \
-        .order_by(Expense.date.desc()).limit(50).all()
+    user = User.query.get(session['id'])
+    expenses = Expense.query.filter_by(user_id=session['id']).all()
 
     if not expenses:
-        expense_summary = "No expenses recorded yet."
+        summary = "This user has no recorded expenses yet."
     else:
-        lines = [f"{e.date} | {e.category} | ${e.amount:.2f} | {e.description}" for e in expenses]
-        expense_summary = "\n".join(lines)
+        # Total spending
+        total = round(sum(e.amount for e in expenses), 2)
 
-    prompt = f"""Here is the user's recent expense data:
+        # Category breakdown
+        from collections import defaultdict
+        category_totals = defaultdict(float)
+        for e in expenses:
+            category_totals[e.category] += e.amount
+        category_lines = "\n".join(
+            f"- {cat}: ${amt:.2f}" for cat, amt in sorted(category_totals.items(), key=lambda x: -x[1])
+        )
 
-{expense_summary}
+        # Monthly totals
+        monthly_totals = defaultdict(float)
+        for e in expenses:
+            key = f"{e.date.year}-{e.date.month:02d}"
+            monthly_totals[key] += e.amount
+        monthly_lines = "\n".join(
+            f"- {month}: ${amt:.2f}" for month, amt in sorted(monthly_totals.items())
+        )
+        monthly_avg = round(sum(monthly_totals.values()) / len(monthly_totals), 2) if monthly_totals else 0
 
-Based only on this data, answer the user's question: {question}"""
+        # Max / min single expense
+        max_expense = max(expenses, key=lambda e: e.amount)
+        min_expense = min(expenses, key=lambda e: e.amount)
+
+        summary = f"""Total spending (all time): ${total:.2f}
+
+Spending by category:
+{category_lines}
+
+Spending by month:
+{monthly_lines}
+
+Average monthly spending: ${monthly_avg:.2f}
+
+Largest single expense: {max_expense.description} — ${max_expense.amount:.2f} on {max_expense.date}
+Smallest single expense: {min_expense.description} — ${min_expense.amount:.2f} on {min_expense.date}
+
+User's configured monthly budget limit: ${user.budget_limit:.2f}"""
+
+    prompt = f"""You are a financial assistant for a budgeting app called PocketPal.
+
+Here is a pre-calculated summary of the user's financial data — these numbers are already correct, do not recalculate or second-guess them:
+
+{summary}
+
+Answer the user's question using ONLY the numbers above. Be concise and conversational.
+
+User's question: {question}"""
 
     response = client.chat.completions.create(
         model="llama-3.3-70b-versatile",
         messages=[{"role": "user", "content": prompt}],
-        max_tokens=500
+        max_tokens=400
     )
 
     answer = response.choices[0].message.content
-
     return jsonify({'answer': answer})
 
 if __name__ == "__main__":
