@@ -1199,6 +1199,11 @@ def ask():
         max_expense = max(expenses, key=lambda e: e.amount)
         min_expense = min(expenses, key=lambda e: e.amount)
 
+        itemized_lines = "\n".join(
+            f"- {e.date}: ${e.amount:.2f} | Category: {e.category} | Description: {e.description}"
+            for e in sorted(expenses, key=lambda x: x.date, reverse=True)
+        )
+
         summary = f"""Total spending (all time): ${total:.2f}
 
 Spending by category:
@@ -1212,15 +1217,18 @@ Average monthly spending: ${monthly_avg:.2f}
 Largest single expense: {max_expense.description} — ${max_expense.amount:.2f} on {max_expense.date}
 Smallest single expense: {min_expense.description} — ${min_expense.amount:.2f} on {min_expense.date}
 
-User's configured monthly budget limit: ${user.budget_limit:.2f}"""
+User's configured monthly budget limit: ${user.budget_limit:.2f}
+
+Itemized Transactions List:
+{itemized_lines}"""
 
     prompt = f"""You are a financial assistant for a budgeting app called PocketPal.
 
-Here is a pre-calculated summary of the user's financial data — these numbers are already correct, do not recalculate or second-guess them:
+Here is a pre-calculated summary and itemized list of the user's financial data:
 
 {summary}
 
-Answer the user's question using ONLY the numbers above. Be concise and conversational.
+Answer the user's question accurately using the data above. Be concise and conversational.
 
 User's question: {question}"""
 
