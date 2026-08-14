@@ -11,7 +11,7 @@ from flask import jsonify
 from flask_mail import Mail, Message
 from authlib.integrations.flask_client import OAuth
 from werkzeug.security import generate_password_hash, check_password_hash
-from itsdangerous import URLSafeTimedSerializer
+from itsdangerous import URLSafeTimedSerializer, SignatureExpired, BadSignature
 import os
 import base64 
 import resend
@@ -29,9 +29,10 @@ from flask import Response
 import requests
 import time
 
-#----- Ai Assitant -------------
+#------------Ai Assitant-------------#
 from flask_cors import CORS
 from groq import Groq
+
 
 app = Flask(__name__)
 
@@ -245,6 +246,21 @@ def logout():
     flash("You have been logged out.", "success")
     return redirect(url_for('login'))
 
+
+#-----------Api login for ai assistant chatbot-----------------------
+@app.route('/api/login', methods=['POST'])
+def api_login():
+    data = request.get_json()
+    username = (data.get('username') or '').strip()
+    password = data.get('password') or ''
+
+    user = User.query.filter_by(username=username).first()
+    if not user or not user.password or not check_password_hash(user.password, password):
+        return jsonify({'error': 'Invalid username or password'}), 401
+
+    token = serialiser.dumps({'user_id': user.id})
+    return jsonify({'token': token, 'username': user.username})
+
 #-------------AJAX Endpoints for Real-Time Validation----------------
 @app.route('/check-username')
 def check_username():
@@ -266,8 +282,7 @@ def check_email():
     exists = User.query.filter_by(email=email).first()
     return {'available': not bool(exists)}
 
-#------------ Google Login/Register/Logout/Reset Password -----------#
-# Google login
+#------------Google Login/Register/Logout/Reset Password-----------
 @app.route('/login/google')
 def google_login():
     redirect_uri = url_for('google_callback', _external=True)
@@ -306,7 +321,6 @@ def google_callback():
     session['username'] = user.username
     return redirect(url_for('index'))
 
-# Forgot password
 resend.api_key = os.getenv('RESEND_API_KEY')
 @app.route('/forgot-password', methods=['GET', 'POST'])
 def forgot_password():
@@ -1137,25 +1151,35 @@ def analytics():
 
 
 #--------------Ai Assistant-------------------
+def get_user_from_token():
+    auth_header = request.headers.get('Authorization', '')
+    if not auth_header.startswith('Bearer '):
+        return None
+    token = auth_header.replace('Bearer ', '')
+    try:
+        data = serialiser.loads(token, max_age=60 * 60 * 24 * 7)  # token is valid for 7 days
+        return User.query.get(data['user_id'])
+    except (BadSignature, SignatureExpired):
+        return None
+
+
 @app.route('/ask', methods=['POST'])
 def ask():
-    if 'loggedin' not in session:
-        return jsonify({'answer': 'Please log in to PocketPal first, then try again.'}), 401
+    user = get_user_from_token()
+    if not user:
+        return jsonify({'answer': 'Please log in first.'}), 401
 
     data = request.get_json()
     question = data.get('question', '')
 
-    user = User.query.get(session['id'])
-    expenses = Expense.query.filter_by(user_id=session['id']).all()
+    expenses = Expense.query.filter_by(user_id=user.id).all()
 
     if not expenses:
         summary = "This user has no recorded expenses yet."
     else:
-        # Total spending
+        from collections import defaultdict
         total = round(sum(e.amount for e in expenses), 2)
 
-        # Category breakdown
-        from collections import defaultdict
         category_totals = defaultdict(float)
         for e in expenses:
             category_totals[e.category] += e.amount
@@ -1163,7 +1187,6 @@ def ask():
             f"- {cat}: ${amt:.2f}" for cat, amt in sorted(category_totals.items(), key=lambda x: -x[1])
         )
 
-        # Monthly totals
         monthly_totals = defaultdict(float)
         for e in expenses:
             key = f"{e.date.year}-{e.date.month:02d}"
@@ -1173,7 +1196,6 @@ def ask():
         )
         monthly_avg = round(sum(monthly_totals.values()) / len(monthly_totals), 2) if monthly_totals else 0
 
-        # Max / min single expense
         max_expense = max(expenses, key=lambda e: e.amount)
         min_expense = min(expenses, key=lambda e: e.amount)
 
