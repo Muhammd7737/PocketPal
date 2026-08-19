@@ -1233,7 +1233,7 @@ Answer the user's question accurately using the data above. Be concise and conve
 User's question: {question}"""
 
     response = client.chat.completions.create(
-        model="llama-3.1-8b-instant",
+        model="openai/gpt-oss-120b",
         messages=[{"role": "user", "content": prompt}],
         max_tokens=400
     )
